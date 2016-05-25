@@ -19,8 +19,5 @@ func Test_Example(t *testing.T) {
 		}()
 	}
 	pool.Wait()
-	for {
-		time.Sleep(time.Second)
-		println(runtime.NumGoroutine())
-	}
+	println(runtime.NumGoroutine())
 }
