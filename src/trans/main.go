@@ -7,7 +7,7 @@ import (
 	"strings"
 	"trans/functool"
 
-	"github.com/profile"
+	//	"github.com/profile"
 )
 
 func useage() {
@@ -29,7 +29,7 @@ Remark: Only supports the same encoded files, such as UTF-8`)
 }
 
 func main() {
-	defer profile.Start(profile.CPUProfile).Stop()
+	//	defer profile.Start(profile.CPUProfile).Stop()
 	//	defer profile.Start(profile.MemProfile).Stop()
 	switch len(os.Args) {
 	case 3:
