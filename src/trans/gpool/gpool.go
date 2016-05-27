@@ -23,6 +23,9 @@ func (p *pool) Add(delta int) {
 	for i := 0; i < delta; i++ {
 		p.queue <- 1
 	}
+	for i := 0; i > delta; i-- {
+		<-p.queue
+	}
 	p.wg.Add(delta)
 }
 
