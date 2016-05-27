@@ -7,7 +7,7 @@ import (
 	"strings"
 	"trans/functool"
 
-	//	"github.com/profile"
+	//	"github.com/pkg/profile"
 )
 
 func useage() {

@@ -43,6 +43,10 @@ func (a *analysis) GetRule(file string) (
 	switch file_ex {
 	case "lua":
 		return a.analysis_lua, a.translate_lua, nil
+	case "prefab":
+		return a.analysis_prefab, a.translate_prefab, nil
+	case "tab":
+		return a.analysis_tab, a.translate_tab, nil
 	default:
 		return nil, nil, errors.New(fmt.Sprintf("[file not rule] %s", file))
 	}
@@ -186,5 +190,47 @@ func (a *analysis) analysis_lua(text *[]byte) (*[][]byte, error) {
 
 func (a *analysis) translate_lua(context *[]byte, sText []byte, trans []byte) error {
 	(*context) = bytes.Replace(*context, sText, trans, -1)
+	return nil
+}
+
+func (a *analysis) analysis_prefab(text *[]byte) (*[][]byte, error) {
+	var cnEntry [][]byte
+	frecord := func(start, end int) {
+		slice := (*text)[start : end+1]
+		cnEntry = append(cnEntry, slice)
+	}
+	nState := state_normal
+	nStateStart := 0
+	nSize := len(*text)
+	for i := 0; i < nSize; i++ {
+		switch nState {
+		case state_normal:
+			switch (*text)[i] {
+			case dq:
+				nStateStart = i + 1
+				nState = state_double_quotes
+			}
+		case state_double_quotes:
+			if (*text)[i] == dq {
+				frecord(nStateStart, i-1)
+				nState = state_normal
+			}
+		}
+	}
+	if nState != state_normal {
+		return &cnEntry, errors.New(fmt.Sprintf("%s state:%d", "file syntax error", nState))
+	}
+	return &cnEntry, nil
+}
+
+func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte) error {
+	return nil
+}
+
+func (a *analysis) analysis_tab(text *[]byte) (*[][]byte, error) {
+	return &[][]byte{}, nil
+}
+
+func (a *analysis) translate_tab(context *[]byte, sText []byte, trans []byte) error {
 	return nil
 }
