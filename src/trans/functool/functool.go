@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	const_filter       string = "lua"
 	const_ignore_file  string = "ignore.conf"
 	const_chinese_file string = "chinese.txt"
 	const_dic_file     string = "dictionary.db"
@@ -78,11 +77,6 @@ func init() {
 }
 
 func filterFile(name string) error {
-	filenamev := strings.Split(name, ".")
-	fileex := filenamev[len(filenamev)-1]
-	if !strings.EqualFold(fileex, const_filter) {
-		return errors.New(fmt.Sprintf("[non-%s] %s", const_filter, name))
-	}
 	namev := strings.Split(name, "/")
 	for _, filename := range namev {
 		if _, ok := filterMap[filename]; ok {
@@ -100,9 +94,15 @@ func GetString(filedir string) {
 		writeLog(log_file|log_print, err)
 		return
 	}
+	var entry_total [][]byte
 	anal := analysis.New()
 	for i := 0; i < len(fmap); i++ {
 		if err := filterFile(fmap[i]); err != nil {
+			writeLog(log_file, err)
+			continue
+		}
+		fanalysis, _, err := anal.GetRule(fmap[i])
+		if err != nil {
 			writeLog(log_file, err)
 			continue
 		}
@@ -111,20 +111,31 @@ func GetString(filedir string) {
 			writeLog(log_file|log_print, err)
 			continue
 		}
-		if err := anal.Analysis(&context); err != nil {
+		entry, err := fanalysis(&context)
+		if err != nil {
 			writeLog(log_file|log_print, err)
+		}
+		for _, v := range *entry {
+			bIsExsit := false
+			for _, m := range entry_total {
+				if bytes.Compare(v, m) == 0 {
+					bIsExsit = true
+				}
+			}
+			if !bIsExsit {
+				entry_total = append(entry_total, v)
+			}
 		}
 	}
 	db := dic.New(const_dic_file)
 	defer db.Close()
 	var ret [][]byte
-	for i := 0; i < len(anal.ChEntry); i++ {
-		if _, err := db.Query(anal.ChEntry[i]); err != nil {
-			ret = append(ret, anal.ChEntry[i])
+	for i := 0; i < len(entry_total); i++ {
+		if _, err := db.Query(entry_total[i]); err != nil {
+			ret = append(ret, entry_total[i])
 		}
 	}
-	err = ft.SaveFileLine(const_chinese_file, ret)
-	if err != nil {
+	if err := ft.SaveFileLine(const_chinese_file, ret); err != nil {
 		writeLog(log_file|log_print, err)
 		return
 	}
@@ -137,41 +148,41 @@ func Update(cnFile, transFile string) {
 	cnFile = strings.Replace(cnFile, "\\", "/", -1)
 	transFile = strings.Replace(transFile, "\\", "/", -1)
 	ft := filetool.GetInstance()
-	linetext1, err1 := ft.ReadFileLine(cnFile)
+	cnText, err1 := ft.ReadFileLine(cnFile)
 	if err1 != nil {
 		writeLog(log_file|log_print, err1)
 		return
 	}
-	linetext2, err2 := ft.ReadFileLine(transFile)
+	transText, err2 := ft.ReadFileLine(transFile)
 	if err2 != nil {
 		writeLog(log_file|log_print, err2)
 		return
 	}
-	linecount1 := len(linetext1)
-	linecount2 := len(linetext2)
-	if linecount1 != linecount2 {
+	cnLen := len(cnText)
+	transLen := len(transText)
+	if cnLen != transLen {
 		writeLog(log_file|log_print, fmt.Sprintf("line number is not equal: %s:%d %s:%d",
-			cnFile, linecount1, transFile, linecount2))
+			cnFile, cnLen, transFile, transLen))
 		return
 	}
 	db := dic.New(const_dic_file)
 	defer db.Close()
 	var count int = 0
-	for i := 0; i < linecount1; i++ {
-		if err := db.Insert(linetext1[i], linetext2[i]); err != nil {
+	for i := 0; i < cnLen; i++ {
+		if err := db.Insert(cnText[i], transText[i]); err != nil {
 			writeLog(log_file|log_print,
-				fmt.Sprintf("insert to db failed: %s:%s", linetext1[i], linetext2[i]))
+				fmt.Sprintf("insert to db failed: %s:%s", cnText[i], transText[i]))
 		} else {
 			count++
 		}
 	}
-	if count != linecount1 {
+	if count != cnLen {
 		writeLog(log_file|log_print,
-			fmt.Sprintf("only insert %d line to dic, total %d.", count, linecount1))
+			fmt.Sprintf("only insert %d line to dic, total %d.", count, cnLen))
 		return
 	}
 	writeLog(log_file|log_print,
-		fmt.Sprintf("update %d/%d line number to dic. update finished!", count, linecount1))
+		fmt.Sprintf("update %d/%d line number to dic. update finished!", count, cnLen))
 	return
 }
 
@@ -197,26 +208,35 @@ func Translate(src, des string, queue int) {
 			writeLog(log_file|log_print, err)
 			return
 		}
-		if err := filterFile(oldfile); err == nil {
-			anal := analysis.New()
-			err = anal.Analysis(&bv)
-			if err != nil {
-				writeLog(log_file|log_print, err)
-				return
-			}
-			for _, t := range anal.ChEntry {
-				trans, err := db.Query(t)
-				if err != nil {
-					mutex.Lock()
-					notrans = append(notrans, t)
-					mutex.Unlock()
-					continue
-				}
-				bv = bytes.Replace(bv, t, trans, -1)
-			}
-		} else {
+		var entry *[][]byte
+		anal := analysis.New()
+		fanalysis, ftranslate, err := anal.GetRule(oldfile)
+		if err != nil {
 			writeLog(log_file, err)
+			goto Point
 		}
+		if err = filterFile(oldfile); err != nil {
+			writeLog(log_file, err)
+			goto Point
+		}
+		entry, err = fanalysis(&bv)
+		if err != nil {
+			writeLog(log_file|log_print, err)
+			goto Point
+		}
+		for _, v := range *entry {
+			trans, err := db.Query(v)
+			if err != nil {
+				mutex.Lock()
+				notrans = append(notrans, v)
+				mutex.Unlock()
+				continue
+			}
+			if err := ftranslate(&bv, v, trans); err != nil {
+				writeLog(log_file|log_print, err)
+			}
+		}
+	Point:
 		ft.WriteAll(newfile, bv)
 	}
 	for i := 0; i < len(fmap); i++ {

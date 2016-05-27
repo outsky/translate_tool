@@ -13,11 +13,15 @@ func Test_example(t *testing.T) {
 		t.Fatal(err)
 	}
 	ana := analysis.New()
-	err = ana.Analysis(&text)
+	fanalysis, _, err := ana.GetTool("test.lua")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, v := range ana.ChEntry {
+	entry, err := fanalysis(&text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range *entry {
 		fmt.Printf("%s\n", v)
 	}
 }
@@ -28,8 +32,12 @@ func Benchmark_example(b *testing.B) {
 		b.Fatal("can not read file")
 	}
 	ana := analysis.New()
+	fanalysis, _, err := ana.GetTool("test.lua")
+	if err != nil {
+		b.Fatal(err)
+	}
 	for i := 0; i < b.N; i++ {
-		err = ana.Analysis(&text)
+		_, err = fanalysis(&text)
 		if err != nil {
 			b.Fatal(err)
 		}

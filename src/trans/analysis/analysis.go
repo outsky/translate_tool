@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 )
 
-type analysis struct {
-	ChEntry [][]byte
-}
+type analysis struct{}
 
 var (
 	ap byte = 0x27 //单引号'
@@ -31,7 +30,26 @@ const (
 	state_double_brackets        //[[中括号]]字符串
 )
 
-func (a *analysis) Analysis(text *[]byte) error {
+func New() *analysis {
+	return &analysis{}
+}
+
+func (a *analysis) GetRule(file string) (
+	func(*[]byte) (*[][]byte, error),
+	func(*[]byte, []byte, []byte) error,
+	error) {
+	filev := strings.Split(file, ".")
+	file_ex := filev[len(filev)-1]
+	switch file_ex {
+	case "lua":
+		return a.analysis_lua, a.translate_lua, nil
+	default:
+		return nil, nil, errors.New(fmt.Sprintf("[file not rule] %s", file))
+	}
+}
+
+func (a *analysis) analysis_lua(text *[]byte) (*[][]byte, error) {
+	var cnEntry [][]byte
 	frecord := func(start, end int) {
 		bIsChinese := false
 		for i := start; i <= end; i++ {
@@ -44,12 +62,12 @@ func (a *analysis) Analysis(text *[]byte) error {
 			return
 		}
 		slice := (*text)[start : end+1]
-		for _, v := range a.ChEntry {
+		for _, v := range cnEntry {
 			if bytes.Compare(slice, v) == 0 {
 				return
 			}
 		}
-		a.ChEntry = append(a.ChEntry, slice)
+		cnEntry = append(cnEntry, slice)
 	}
 	nState := state_normal
 	nStateStart := 0
@@ -161,11 +179,12 @@ func (a *analysis) Analysis(text *[]byte) error {
 		}
 	}
 	if nState != state_normal && nState != state_note_line {
-		return errors.New(fmt.Sprintf("%s state:%d", "file syntax error", nState))
+		return &cnEntry, errors.New(fmt.Sprintf("%s state:%d", "file syntax error", nState))
 	}
-	return nil
+	return &cnEntry, nil
 }
 
-func New() *analysis {
-	return &analysis{}
+func (a *analysis) translate_lua(context *[]byte, sText []byte, trans []byte) error {
+	(*context) = bytes.Replace(*context, sText, trans, -1)
+	return nil
 }
