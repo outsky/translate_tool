@@ -22,6 +22,9 @@ var (
 	cr byte = 0x0d //回车CR
 	lf byte = 0x0a //换行LF
 	eq byte = 0x3d //等于号=
+	sp byte = 0x20 //空格
+	tb byte = 0x09 //tab制表符
+	uu byte = 0x75 //u字符
 )
 
 const (
@@ -212,10 +215,11 @@ func (a *analysis) translate_lua(context *[]byte, sText []byte, trans []byte) er
 
 func (a *analysis) analysis_prefab(text *[]byte) (*[][]byte, error) {
 	var cnEntry [][]byte
+	tag := fmt.Sprintf("%c%c", sl, uu)
 	frecord := func(start, end int) {
 		unicode := string((*text)[start : end+1])
-		index := strings.Index(unicode, "\\u")
-		for ; index != -1; index = strings.Index(unicode, "\\u") {
+		index := strings.Index(unicode, tag)
+		for ; index != -1; index = strings.Index(unicode, tag) {
 			hanzi, err := a.Uc2hanzi(unicode[index+2 : index+6])
 			if err != nil {
 				panic(err)
@@ -258,7 +262,7 @@ func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte)
 	prefabformat := func(s string) string {
 		length := len(s)
 		for i := 0; i+5 < length; i++ {
-			if s[i] == '\\' && s[i+1] == 'u' {
+			if s[i] == sl && s[i+1] == uu {
 				upper := strings.ToUpper(s[i+2 : i+6])
 				s = strings.Replace(s, s[i+2:i+6], upper, 1)
 			}
@@ -275,8 +279,9 @@ func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte)
 
 func (a *analysis) analysis_tab(text *[]byte) (*[][]byte, error) {
 	var cnEntry [][]byte
-	textv := bytes.Split(*text, []byte{'\t'})
+	textv := bytes.Split(*text, []byte{tb})
 	for _, v := range textv {
+		v = bytes.Trim(v, string(sp))
 		bIsChinese := false
 		for i := 0; i < len(v); i++ {
 			if v[i]&0x80 != 0 {
