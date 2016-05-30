@@ -12,7 +12,7 @@ import (
 
 func useage() {
 	fmt.Println(
-		`trans is a tool for extract chinese, update dictionary and translate lua script.
+		`trans is a chinese extraction, record and translate tools.
 
 Usage:	trans command [arguments]
 
@@ -21,11 +21,11 @@ The commands are:
 	getstring	extract chinese from file or folder.
 			e.g. trans getstring path				
 	update		update translation to dictionary.
-			e.g. trans update chinese.txt viet.txt				
-	translate	translate lua script.
+			e.g. trans update chinese.txt translate.txt				
+	translate	translate file or folder.
 			e.g. trans translate src_path des_path
 	
-Remark: Only supports the same encoded files, such as UTF-8`)
+Remark: Supports .lua, .prefab, .tab file`)
 }
 
 func main() {
