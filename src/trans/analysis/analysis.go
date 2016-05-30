@@ -255,13 +255,12 @@ func (a *analysis) analysis_prefab(text *[]byte) (*[][]byte, error) {
 }
 
 func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte) error {
-	fmt.Printf("%s, %s\n", sText, trans)
 	prefabformat := func(s string) string {
 		length := len(s)
-		for i := 0; i < length && i+1 < length; i++ {
+		for i := 0; i+5 < length; i++ {
 			if s[i] == '\\' && s[i+1] == 'u' {
-				ss := strings.ToUpper(s[i+2 : i+6])
-				s = strings.Replace(s, s[i+2:i+6], ss, 1)
+				upper := strings.ToUpper(s[i+2 : i+6])
+				s = strings.Replace(s, s[i+2:i+6], upper, 1)
 			}
 		}
 		return s
@@ -270,7 +269,6 @@ func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte)
 	textUnquoted := prefabformat(textQuoted[1 : len(textQuoted)-1])
 	transQuoted := strconv.QuoteToASCII(string(trans))
 	transUnquoted := prefabformat(transQuoted[1 : len(transQuoted)-1])
-	fmt.Println(textUnquoted, transUnquoted)
 	(*context) = bytes.Replace(*context, []byte(textUnquoted), []byte(transUnquoted), -1)
 	return nil
 }
