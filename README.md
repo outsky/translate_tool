@@ -1,20 +1,16 @@
-lua_translate_tool
+translate_tool
 
 Description
 -----------
 
-lua script translate tool
+Text translate tool
     
-Documentation
+How to use
 -------------
 
-Build after install MinGW and third party library
- 
-    go get github.com/mattn/go-sqlite3
+Build after install MinGW and Set GOPATH=Current catalog
     
-How to use:
-
-Extract chinese character string
+Extract chinese character string(support lua, prefab and tab file)
  
     ./trans getstring path
 	
