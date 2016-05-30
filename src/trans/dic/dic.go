@@ -1,10 +1,17 @@
 package dic
 
 import (
+	"bytes"
 	"database/sql"
-	"log"
 
 	_ "github.com/mattn/go-sqlite3"
+)
+
+const (
+	sql_create string = `create table if not exists dic (cn bold not null primary key, trans bold not null);`
+	sql_insert string = `insert into dic(trans, cn) values(?, ?)`
+	sql_update string = `update dic set trans = ? where cn = ?`
+	sql_query  string = `select trans from dic where cn = ?`
 )
 
 type dic struct {
@@ -15,12 +22,11 @@ func New(name string) *dic {
 	ins := &dic{}
 	db, err := sql.Open("sqlite3", name)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
-	sqlStmt := `create table if not exists dic (cn bold not null primary key, trans bold not null);`
-	_, err = db.Exec(sqlStmt)
+	_, err = db.Exec(sql_create)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 	ins.db = db
 	return ins
@@ -29,23 +35,31 @@ func New(name string) *dic {
 func (d *dic) Close() {
 	if d.db != nil {
 		if err := d.db.Close(); err != nil {
-			log.Fatalln(err)
+			panic(err)
 		}
 		d.db = nil
 	}
 }
 
 func (d *dic) Insert(cn, trans []byte) error {
+	sql := sql_insert
+	ret, err := d.Query(cn)
+	if err == nil {
+		if bytes.Compare(ret, trans) == 0 {
+			return nil
+		}
+		sql = sql_update
+	}
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare("insert or ignore into dic(cn, trans) values(?, ?)")
+	stmt, err := tx.Prepare(sql)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(cn, trans)
+	_, err = stmt.Exec(trans, cn)
 	if err != nil {
 		return err
 	}
@@ -54,7 +68,7 @@ func (d *dic) Insert(cn, trans []byte) error {
 
 func (d *dic) Query(text []byte) ([]byte, error) {
 	var trans []byte
-	stmt, err := d.db.Prepare("select trans from dic where cn = ?")
+	stmt, err := d.db.Prepare(sql_query)
 	if err != nil {
 		return trans, err
 	}

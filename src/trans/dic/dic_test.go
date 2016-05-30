@@ -25,8 +25,9 @@ func Test_Query(t *testing.T) {
 	ret, err = db.Query([]byte("测试1"))
 	if err != nil {
 		fmt.Println(err)
+	} else {
+		fmt.Println(string(ret))
 	}
-	fmt.Println(string(ret))
 }
 
 func Benchmark_Insert(b *testing.B) {
@@ -49,12 +50,5 @@ func Benchmark_Query(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cn = fmt.Sprintf("%s%d", "测试", i)
 		db.Query([]byte(cn))
-	}
-}
-
-func Benchmark_New(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		db := dic.New("../test/dictionary.db")
-		db.Close()
 	}
 }
