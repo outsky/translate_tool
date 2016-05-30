@@ -6,49 +6,12 @@ import (
 	"trans/filetool"
 )
 
-func Test_ReadFileLine(t *testing.T) {
-	ft := filetool.GetInstance()
-	context, err := ft.ReadFileLine("test.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(len(context))
-	for k, v := range context {
-		fmt.Printf("%d %s\n", k, v)
-	}
-}
-
-func Test_SaveFileLine(t *testing.T) {
-	ft := filetool.GetInstance()
-	context1, err := ft.ReadFileLine("test1.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(len(context1))
-	for k, v := range context1 {
-		fmt.Printf("%d %s\n", k, v)
-	}
-	err = ft.SaveFileLine("test1.txt", context1)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func Test_GetInstance(t *testing.T) {
 	ft1 := filetool.GetInstance()
 	ft2 := filetool.GetInstance()
 	if ft1 != ft2 {
 		t.Fatal("GetInstance diffrent value")
 	}
-}
-
-func Test_ReadAll(t *testing.T) {
-	ft := filetool.GetInstance()
-	bv, err := ft.ReadAll("test.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("%s\n", bv)
 }
 
 func Test_GetFileMap(t *testing.T) {
@@ -62,30 +25,63 @@ func Test_GetFileMap(t *testing.T) {
 	}
 }
 
-func Test_WriteAll(t *testing.T) {
+func Test_ReadFileLine(t *testing.T) {
 	ft := filetool.GetInstance()
-	bv, err := ft.ReadAll("test.txt")
+	context, err := ft.ReadFileLine("../test/cn.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ft.WriteAll("test/test/test.txt", bv)
+	for k, v := range context {
+		fmt.Printf("%d %s\n", k, v)
+	}
+}
+
+func Test_SaveFileLine(t *testing.T) {
+	ft := filetool.GetInstance()
+	context, err := ft.ReadFileLine("../test/cn.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ft.SaveFileLine("../test/cn2.txt", context)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func Test_ReadAll(t *testing.T) {
+	ft := filetool.GetInstance()
+	bv, err := ft.ReadAll("../test/test.lua", false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("%s\n", bv)
-	err = ft.WriteAll("test2.txt", bv)
+}
+
+func Test_WriteAll(t *testing.T) {
+	ft := filetool.GetInstance()
+	bv, err := ft.ReadAll("../test/test.lua", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ft.WriteAll("../test/test/test/test.lua", bv, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ft.WriteAll("../test/test2.txt", bv, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func Benchmark_SaveFileLine(b *testing.B) {
+func Test_GbkFile(t *testing.T) {
 	ft := filetool.GetInstance()
-	for i := 0; i < b.N; i++ {
-		context, err := ft.ReadFileLine("test.txt")
-		if err != nil {
-			b.Fatal(err)
-		}
-		ft.SaveFileLine("test.txt", context)
+	bv, err := ft.ReadAll("../test/cn/ScriptItem.tab", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("%s\n", bv)
+	err = ft.WriteAll("../test/ScriptItem2.tab", bv, true)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

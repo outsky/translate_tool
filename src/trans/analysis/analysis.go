@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
-type analysis struct{}
+type analysis struct {
+	uc2hz map[string]string
+}
 
 var (
 	ap byte = 0x27 //单引号'
@@ -31,24 +34,39 @@ const (
 )
 
 func New() *analysis {
-	return &analysis{}
+	return &analysis{
+		uc2hz: make(map[string]string),
+	}
+}
+
+func (a *analysis) Uc2hanzi(uc string) (string, error) {
+	if hz, ok := a.uc2hz[uc]; ok {
+		return hz, nil
+	}
+	val2int, err := strconv.ParseInt(uc, 16, 32)
+	if err != nil {
+		return uc, err
+	}
+	context := fmt.Sprintf("%c", val2int)
+	a.uc2hz[uc] = context
+	return context, nil
 }
 
 func (a *analysis) GetRule(file string) (
 	func(*[]byte) (*[][]byte, error),
 	func(*[]byte, []byte, []byte) error,
-	error) {
+	bool, error) {
 	filev := strings.Split(file, ".")
 	file_ex := filev[len(filev)-1]
 	switch file_ex {
 	case "lua":
-		return a.analysis_lua, a.translate_lua, nil
+		return a.analysis_lua, a.translate_lua, false, nil
 	case "prefab":
-		return a.analysis_prefab, a.translate_prefab, nil
+		return a.analysis_prefab, a.translate_prefab, false, nil
 	case "tab":
-		return a.analysis_tab, a.translate_tab, nil
+		return a.analysis_tab, a.translate_tab, true, nil
 	default:
-		return nil, nil, errors.New(fmt.Sprintf("[file not rule] %s", file))
+		return nil, nil, false, errors.New(fmt.Sprintf("[file not rule] %s", file))
 	}
 }
 
@@ -62,16 +80,15 @@ func (a *analysis) analysis_lua(text *[]byte) (*[][]byte, error) {
 				break
 			}
 		}
-		if !bIsChinese {
-			return
-		}
-		slice := (*text)[start : end+1]
-		for _, v := range cnEntry {
-			if bytes.Compare(slice, v) == 0 {
-				return
+		if bIsChinese {
+			slice := (*text)[start : end+1]
+			for _, v := range cnEntry {
+				if bytes.Compare(slice, v) == 0 {
+					return
+				}
 			}
+			cnEntry = append(cnEntry, slice)
 		}
-		cnEntry = append(cnEntry, slice)
 	}
 	nState := state_normal
 	nStateStart := 0
@@ -196,7 +213,21 @@ func (a *analysis) translate_lua(context *[]byte, sText []byte, trans []byte) er
 func (a *analysis) analysis_prefab(text *[]byte) (*[][]byte, error) {
 	var cnEntry [][]byte
 	frecord := func(start, end int) {
-		slice := (*text)[start : end+1]
+		unicode := string((*text)[start : end+1])
+		index := strings.Index(unicode, "\\u")
+		for ; index != -1; index = strings.Index(unicode, "\\u") {
+			hanzi, err := a.Uc2hanzi(unicode[index+2 : index+6])
+			if err != nil {
+				panic(err)
+			}
+			unicode = strings.Replace(unicode, unicode[index:index+6], hanzi, 1)
+		}
+		slice := []byte(unicode)
+		for _, v := range cnEntry {
+			if bytes.Compare(slice, v) == 0 {
+				return
+			}
+		}
 		cnEntry = append(cnEntry, slice)
 	}
 	nState := state_normal
@@ -224,13 +255,50 @@ func (a *analysis) analysis_prefab(text *[]byte) (*[][]byte, error) {
 }
 
 func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte) error {
+	fmt.Printf("%s, %s\n", sText, trans)
+	prefabformat := func(s string) string {
+		length := len(s)
+		for i := 0; i < length && i+1 < length; i++ {
+			if s[i] == '\\' && s[i+1] == 'u' {
+				ss := strings.ToUpper(s[i+2 : i+6])
+				s = strings.Replace(s, s[i+2:i+6], ss, 1)
+			}
+		}
+		return s
+	}
+	textQuoted := strconv.QuoteToASCII(string(sText))
+	textUnquoted := prefabformat(textQuoted[1 : len(textQuoted)-1])
+	transQuoted := strconv.QuoteToASCII(string(trans))
+	transUnquoted := prefabformat(transQuoted[1 : len(transQuoted)-1])
+	fmt.Println(textUnquoted, transUnquoted)
+	(*context) = bytes.Replace(*context, []byte(textUnquoted), []byte(transUnquoted), -1)
 	return nil
 }
 
 func (a *analysis) analysis_tab(text *[]byte) (*[][]byte, error) {
-	return &[][]byte{}, nil
+	var cnEntry [][]byte
+	textv := bytes.Split(*text, []byte{'\t'})
+	for _, v := range textv {
+		bIsChinese := false
+		for i := 0; i < len(v); i++ {
+			if v[i]&0x80 != 0 {
+				bIsChinese = true
+				break
+			}
+		}
+		if bIsChinese {
+			for _, m := range cnEntry {
+				if bytes.Compare(v, m) == 0 {
+					continue
+				}
+			}
+			cnEntry = append(cnEntry, v)
+		}
+	}
+	return &cnEntry, nil
 }
 
 func (a *analysis) translate_tab(context *[]byte, sText []byte, trans []byte) error {
+	(*context) = bytes.Replace(*context, sText, trans, -1)
 	return nil
 }

@@ -2,6 +2,7 @@ package filetool
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
 type filetool struct{}
@@ -95,16 +99,36 @@ func (ft *filetool) GetFilesMap(path string) (map[int]string, error) {
 	return filemap, nil
 }
 
-func (ft *filetool) ReadAll(name string) ([]byte, error) {
-	return ioutil.ReadFile(name)
+func (ft *filetool) ReadAll(name string, bDecoder bool) ([]byte, error) {
+	context, err := ioutil.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	if bDecoder {
+		reader := transform.NewReader(bytes.NewReader(context), simplifiedchinese.GBK.NewDecoder())
+		dcontext, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+		return dcontext, nil
+	}
+	return context, nil
 }
 
-func (ft *filetool) WriteAll(name string, text []byte) error {
+func (ft *filetool) WriteAll(name string, text []byte, bGbkEncoder bool) error {
 	if index := strings.LastIndex(name, "/"); index != -1 {
 		err := os.MkdirAll(name[:index], os.ModePerm)
 		if err != nil {
 			return err
 		}
+	}
+	if bGbkEncoder {
+		reader := transform.NewReader(bytes.NewReader(text), simplifiedchinese.GBK.NewEncoder())
+		gbktext, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+		return ioutil.WriteFile(name, gbktext, os.ModePerm)
 	}
 	return ioutil.WriteFile(name, text, os.ModePerm)
 }

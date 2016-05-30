@@ -101,12 +101,12 @@ func GetString(filedir string) {
 			writeLog(log_file, err)
 			continue
 		}
-		fanalysis, _, err := anal.GetRule(fmap[i])
+		fanalysis, _, bDecoder, err := anal.GetRule(fmap[i])
 		if err != nil {
 			writeLog(log_file, err)
 			continue
 		}
-		context, err := ft.ReadAll(fmap[i])
+		context, err := ft.ReadAll(fmap[i], bDecoder)
 		if err != nil {
 			writeLog(log_file|log_print, err)
 			continue
@@ -203,14 +203,14 @@ func Translate(src, des string, queue int) {
 	mutex := &sync.Mutex{}
 	f := func(oldfile, newfile string) {
 		defer pool.Done()
-		bv, err := ft.ReadAll(oldfile)
-		if err != nil {
-			writeLog(log_file|log_print, err)
-			return
-		}
 		var entry *[][]byte
 		anal := analysis.New()
-		fanalysis, ftranslate, err := anal.GetRule(oldfile)
+		fanalysis, ftranslate, bDecoder, err := anal.GetRule(oldfile)
+		bv, e := ft.ReadAll(oldfile, bDecoder)
+		if e != nil {
+			writeLog(log_file|log_print, e)
+			return
+		}
 		if err != nil {
 			writeLog(log_file, err)
 			goto Point
@@ -237,7 +237,7 @@ func Translate(src, des string, queue int) {
 			}
 		}
 	Point:
-		ft.WriteAll(newfile, bv)
+		ft.WriteAll(newfile, bv, bDecoder)
 	}
 	for i := 0; i < len(fmap); i++ {
 		fpath := strings.Replace(fmap[i], src, des, 1)
