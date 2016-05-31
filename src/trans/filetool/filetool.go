@@ -20,6 +20,7 @@ import (
 
 type filetool struct {
 	encodingmap map[string]encoding.Encoding
+	file2coding map[string]string //没有设定的文件以默认编码方式读写
 }
 
 var instance *filetool
@@ -29,16 +30,43 @@ func GetInstance() *filetool {
 	once.Do(func() {
 		instance = &filetool{
 			encodingmap: map[string]encoding.Encoding{
-				"undefine":  nil,
 				"utf8":      unicode.UTF8,
 				"gbk":       simplifiedchinese.GBK,
 				"hz-gb2312": simplifiedchinese.HZGB2312,
 				"gb18030":   simplifiedchinese.GB18030,
 				"big5":      traditionalchinese.Big5,
 			},
+			file2coding: map[string]string{
+				"prefab": "gbk",
+				"tab":    "gbk",
+			},
 		}
 	})
 	return instance
+}
+
+func (ft *filetool) GetEncoding(file string) encoding.Encoding {
+	filev := strings.Split(file, ".")
+	file_ex := filev[len(filev)-1]
+	codingstring, ok := ft.file2coding[file_ex]
+	if !ok {
+		return nil
+	}
+	coding, ok := ft.encodingmap[codingstring]
+	if !ok {
+		return nil
+	}
+	return coding
+}
+
+func (ft *filetool) SetEncoding(file, codingstring string) error {
+	filev := strings.Split(file, ".")
+	file_ex := filev[len(filev)-1]
+	if _, ok := ft.encodingmap[codingstring]; !ok {
+		return errors.New(fmt.Sprintf("encoding not exsit [%s] %s", codingstring, file))
+	}
+	ft.file2coding[file_ex] = codingstring
+	return nil
 }
 
 func (ft *filetool) GetFilesMap(path string) (map[int]string, error) {
@@ -59,20 +87,17 @@ func (ft *filetool) GetFilesMap(path string) (map[int]string, error) {
 	}
 	fpErr := filepath.Walk(path, f)
 	if fpErr != nil {
-		return nil, errors.New(fmt.Sprintf("filepath.Walk(%s) Failed!", path))
+		return nil, errors.New(fmt.Sprintf("filepath.Walk Failed! %s", path))
 	}
 	return filemap, nil
 }
 
-func (ft *filetool) ReadAll(name string, decoder string) ([]byte, error) {
+func (ft *filetool) ReadAll(name string) ([]byte, error) {
 	context, err := ioutil.ReadFile(name)
 	if err != nil {
 		return nil, err
 	}
-	coding, ok := ft.encodingmap[decoder]
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("decoder error [%s] %s", decoder, name))
-	}
+	coding := ft.GetEncoding(name)
 	if coding != nil {
 		reader := transform.NewReader(bytes.NewReader(context), coding.NewDecoder())
 		dcontext, err := ioutil.ReadAll(reader)
@@ -84,17 +109,14 @@ func (ft *filetool) ReadAll(name string, decoder string) ([]byte, error) {
 	return context, nil
 }
 
-func (ft *filetool) WriteAll(name string, context []byte, encoder string) error {
+func (ft *filetool) WriteAll(name string, context []byte) error {
 	if index := strings.LastIndex(name, "/"); index != -1 {
 		err := os.MkdirAll(name[:index], os.ModePerm)
 		if err != nil {
 			return err
 		}
 	}
-	coding, ok := ft.encodingmap[encoder]
-	if !ok {
-		return errors.New(fmt.Sprintf("encoder error [%s] %s", encoder, name))
-	}
+	coding := ft.GetEncoding(name)
 	if coding != nil {
 		reader := transform.NewReader(bytes.NewReader(context), coding.NewEncoder())
 		econtext, err := ioutil.ReadAll(reader)
@@ -106,16 +128,12 @@ func (ft *filetool) WriteAll(name string, context []byte, encoder string) error 
 	return ioutil.WriteFile(name, context, os.ModePerm)
 }
 
-func (ft *filetool) ReadFileLine(name string, decoder string) ([][]byte, error) {
+func (ft *filetool) ReadFileLine(name string) ([][]byte, error) {
 	var context [][]byte
 	f, err := os.Open(name)
 	defer f.Close()
 	if err != nil {
 		return nil, err
-	}
-	coding, ok := ft.encodingmap[decoder]
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("decoder error [%s] %s", decoder, name))
 	}
 	readline := func(r *bufio.Reader) ([]byte, error) {
 		var (
@@ -129,6 +147,7 @@ func (ft *filetool) ReadFileLine(name string, decoder string) ([][]byte, error) 
 		}
 		return realyline, err
 	}
+	coding := ft.GetEncoding(name)
 	r := bufio.NewReader(f)
 	err = nil
 	var line []byte
@@ -151,16 +170,13 @@ func (ft *filetool) ReadFileLine(name string, decoder string) ([][]byte, error) 
 	return context, nil
 }
 
-func (ft *filetool) SaveFileLine(name string, context [][]byte, encoder string) error {
+func (ft *filetool) SaveFileLine(name string, context [][]byte) error {
 	f, err := os.Create(name)
 	defer f.Close()
 	if err != nil {
 		return err
 	}
-	coding, ok := ft.encodingmap[encoder]
-	if !ok {
-		return errors.New(fmt.Sprintf("encoder error [%s] %s", encoder, name))
-	}
+	coding := ft.GetEncoding(name)
 	w := bufio.NewWriter(f)
 	length := len(context)
 	if length >= 1 {

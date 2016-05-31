@@ -1,19 +1,18 @@
-package functool_test
+package main
 
 import (
 	"fmt"
 	"testing"
 	"trans/dic"
-	"trans/functool"
 )
 
 func Test_GetString(t *testing.T) {
-	functool.GetString("../test")
-	functool.GetString("f:/bqp/bqp/client1")
+	GetString("test")
+	GetString("f:/bqp/bqp/client1")
 }
 
 func Test_Update(t *testing.T) {
-	functool.Update("../test/cn.txt", "../test/en.txt")
+	Update("test/cn.txt", "test/en.txt")
 	db := dic.New("dictionary.db")
 	defer db.Close()
 	ret, err := db.Query([]byte("家族排名："))
@@ -21,21 +20,21 @@ func Test_Update(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Printf("%s\n", ret)
-	functool.Update("../test/cn.txt", "../test/test.lua")
+	Update("test/cn.txt", "test/test.lua")
 }
 
 func Test_Translate(t *testing.T) {
-	functool.Translate("../test/cn", "../test/en", 1)
+	Translate("test/cn", "test/en", 1)
 }
 
 func Benchmark_GetString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		functool.GetString("../test")
+		GetString("test")
 	}
 }
 
 func Benchmark_Update(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		functool.Update("../test/cn.txt", "../test/en.txt")
+		Update("test/cn.txt", "test/en.txt")
 	}
 }
