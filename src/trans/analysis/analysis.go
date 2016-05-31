@@ -58,18 +58,18 @@ func (a *analysis) Uc2hanzi(uc string) (string, error) {
 func (a *analysis) GetRule(file string) (
 	func(*[]byte) (*[][]byte, error),
 	func(*[]byte, []byte, []byte) error,
-	bool, error) {
+	string, error) {
 	filev := strings.Split(file, ".")
 	file_ex := filev[len(filev)-1]
 	switch file_ex {
 	case "lua":
-		return a.analysis_lua, a.translate_lua, false, nil
+		return a.analysis_lua, a.translate_lua, "utf8", nil
 	case "prefab":
-		return a.analysis_prefab, a.translate_prefab, false, nil
+		return a.analysis_prefab, a.translate_prefab, "gbk", nil
 	case "tab":
-		return a.analysis_tab, a.translate_tab, true, nil
+		return a.analysis_tab, a.translate_tab, "gbk", nil
 	default:
-		return nil, nil, false, errors.New(fmt.Sprintf("[file not rule] %s", file))
+		return nil, nil, "undefine", errors.New(fmt.Sprintf("[file not rule] %s", file))
 	}
 }
 

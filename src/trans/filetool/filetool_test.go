@@ -27,7 +27,7 @@ func Test_GetFileMap(t *testing.T) {
 
 func Test_ReadFileLine(t *testing.T) {
 	ft := filetool.GetInstance()
-	context, err := ft.ReadFileLine("../test/cn.txt")
+	context, err := ft.ReadFileLine("../test/cn.txt", "utf8")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,11 +38,19 @@ func Test_ReadFileLine(t *testing.T) {
 
 func Test_SaveFileLine(t *testing.T) {
 	ft := filetool.GetInstance()
-	context, err := ft.ReadFileLine("../test/cn.txt")
+	context, err := ft.ReadFileLine("../test/cn.txt", "utf8")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ft.SaveFileLine("../test/cn2.txt", context)
+	err = ft.SaveFileLine("../test/cn1.txt", context, "gbk")
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = ft.SaveFileLine("../test/cn2.txt", context, "hz-gb2312")
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = ft.SaveFileLine("../test/cn3.txt", context, "gb18030")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -50,7 +58,7 @@ func Test_SaveFileLine(t *testing.T) {
 
 func Test_ReadAll(t *testing.T) {
 	ft := filetool.GetInstance()
-	bv, err := ft.ReadAll("../test/test.lua", false)
+	bv, err := ft.ReadAll("../test/test.lua", "utf8")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,15 +67,15 @@ func Test_ReadAll(t *testing.T) {
 
 func Test_WriteAll(t *testing.T) {
 	ft := filetool.GetInstance()
-	bv, err := ft.ReadAll("../test/test.lua", false)
+	bv, err := ft.ReadAll("../test/test.lua", "utf8")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ft.WriteAll("../test/test/test/test.lua", bv, false)
+	err = ft.WriteAll("../test/test/test/test.lua", bv, "utf8")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ft.WriteAll("../test/test2.txt", bv, false)
+	err = ft.WriteAll("../test/test2.txt", bv, "gbk")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,12 +83,27 @@ func Test_WriteAll(t *testing.T) {
 
 func Test_GbkFile(t *testing.T) {
 	ft := filetool.GetInstance()
-	bv, err := ft.ReadAll("../test/cn/ScriptItem.tab", true)
+	bv, err := ft.ReadAll("../test/cn/ScriptItem.tab", "gbk")
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("%s\n", bv)
-	err = ft.WriteAll("../test/ScriptItem2.tab", bv, true)
+	err = ft.WriteAll("../test/ScriptItem2.tab", bv, "utf8")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func Test_Big5File(t *testing.T) {
+	ft := filetool.GetInstance()
+	bv, err := ft.ReadAll("../test/big5.txt", "utf8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ft.WriteAll("../test/big5_1.txt", bv, "big5")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ft.WriteAll("../test/big5_2.txt", bv, "gbk")
 	if err != nil {
 		t.Fatal(err)
 	}

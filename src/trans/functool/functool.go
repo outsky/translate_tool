@@ -50,7 +50,7 @@ func init() {
 	// init or read ignore config
 	filterMap = make(map[string]string)
 	ft := filetool.GetInstance()
-	bv, err := ft.ReadFileLine(const_ignore_file)
+	bv, err := ft.ReadFileLine(const_ignore_file, "utf8")
 	if err != nil {
 		writeLog(log_file, err)
 		bv = [][]byte{
@@ -61,7 +61,7 @@ func init() {
 			[]byte(".git"),
 			[]byte(".svn"),
 		}
-		err = ft.SaveFileLine(const_ignore_file, bv)
+		err = ft.SaveFileLine(const_ignore_file, bv, "utf8")
 		if err != nil {
 			writeLog(log_file|log_print, err)
 		}
@@ -101,12 +101,12 @@ func GetString(filedir string) {
 			writeLog(log_file, err)
 			continue
 		}
-		fanalysis, _, bDecoder, err := anal.GetRule(fmap[i])
+		fanalysis, _, decoder, err := anal.GetRule(fmap[i])
 		if err != nil {
 			writeLog(log_file, err)
 			continue
 		}
-		context, err := ft.ReadAll(fmap[i], bDecoder)
+		context, err := ft.ReadAll(fmap[i], decoder)
 		if err != nil {
 			writeLog(log_file|log_print, err)
 			continue
@@ -135,7 +135,7 @@ func GetString(filedir string) {
 			ret = append(ret, entry_total[i])
 		}
 	}
-	if err := ft.SaveFileLine(const_chinese_file, ret); err != nil {
+	if err := ft.SaveFileLine(const_chinese_file, ret, "utf8"); err != nil {
 		writeLog(log_file|log_print, err)
 		return
 	}
@@ -148,12 +148,12 @@ func Update(cnFile, transFile string) {
 	cnFile = strings.Replace(cnFile, "\\", "/", -1)
 	transFile = strings.Replace(transFile, "\\", "/", -1)
 	ft := filetool.GetInstance()
-	cnText, err1 := ft.ReadFileLine(cnFile)
+	cnText, err1 := ft.ReadFileLine(cnFile, "utf8")
 	if err1 != nil {
 		writeLog(log_file|log_print, err1)
 		return
 	}
-	transText, err2 := ft.ReadFileLine(transFile)
+	transText, err2 := ft.ReadFileLine(transFile, "utf8")
 	if err2 != nil {
 		writeLog(log_file|log_print, err2)
 		return
@@ -205,8 +205,8 @@ func Translate(src, des string, queue int) {
 		defer pool.Done()
 		var entry *[][]byte
 		anal := analysis.New()
-		fanalysis, ftranslate, bDecoder, err := anal.GetRule(oldfile)
-		bv, e := ft.ReadAll(oldfile, bDecoder)
+		fanalysis, ftranslate, decoder, err := anal.GetRule(oldfile)
+		bv, e := ft.ReadAll(oldfile, decoder)
 		if e != nil {
 			writeLog(log_file|log_print, e)
 			return
@@ -237,7 +237,7 @@ func Translate(src, des string, queue int) {
 			}
 		}
 	Point:
-		ft.WriteAll(newfile, bv, bDecoder)
+		ft.WriteAll(newfile, bv, decoder)
 	}
 	for i := 0; i < len(fmap); i++ {
 		fpath := strings.Replace(fmap[i], src, des, 1)
@@ -246,7 +246,7 @@ func Translate(src, des string, queue int) {
 	}
 	pool.Wait()
 	if len(notrans) > 0 {
-		if err := ft.SaveFileLine(const_chinese_file, notrans); err != nil {
+		if err := ft.SaveFileLine(const_chinese_file, notrans, "utf8"); err != nil {
 			writeLog(log_file|log_print, err)
 			return
 		}

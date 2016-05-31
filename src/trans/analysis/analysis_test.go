@@ -9,11 +9,11 @@ import (
 
 func Test_lua(t *testing.T) {
 	ana := analysis.New()
-	fanalysis, _, bDecoder, err := ana.GetRule("../test/test.lua")
+	fanalysis, _, decoder, err := ana.GetRule("../test/test.lua")
 	if err != nil {
 		t.Fatal(err)
 	}
-	text, err := filetool.GetInstance().ReadAll("../test/test.lua", bDecoder)
+	text, err := filetool.GetInstance().ReadAll("../test/test.lua", decoder)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,11 +28,11 @@ func Test_lua(t *testing.T) {
 
 func Test_prefab(t *testing.T) {
 	ana := analysis.New()
-	fanalysis, _, bDecoder, err := ana.GetRule("../test/cn/Boss.prefab")
+	fanalysis, _, decoder, err := ana.GetRule("../test/cn/Boss.prefab")
 	if err != nil {
 		t.Fatal(err)
 	}
-	text, err := filetool.GetInstance().ReadAll("../test/cn/Boss.prefab", bDecoder)
+	text, err := filetool.GetInstance().ReadAll("../test/cn/Boss.prefab", decoder)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,11 +47,11 @@ func Test_prefab(t *testing.T) {
 
 func Test_tab(t *testing.T) {
 	ana := analysis.New()
-	fanalysis, _, bDecoder, err := ana.GetRule("../test/cn/ScriptItem.tab")
+	fanalysis, _, decoder, err := ana.GetRule("../test/cn/ScriptItem.tab")
 	if err != nil {
 		t.Fatal(err)
 	}
-	text, err := filetool.GetInstance().ReadAll("../test/cn/ScriptItem.tab", bDecoder)
+	text, err := filetool.GetInstance().ReadAll("../test/cn/ScriptItem.tab", decoder)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,11 +66,11 @@ func Test_tab(t *testing.T) {
 
 func Benchmark_lua(b *testing.B) {
 	ana := analysis.New()
-	fanalysis, _, bDecoder, err := ana.GetRule("../test/test.lua")
+	fanalysis, _, decoder, err := ana.GetRule("../test/test.lua")
 	if err != nil {
 		b.Fatal(err)
 	}
-	text, err := filetool.GetInstance().ReadAll("../test/test.lua", bDecoder)
+	text, err := filetool.GetInstance().ReadAll("../test/test.lua", decoder)
 	if err != nil {
 		b.Fatal("can not read file")
 	}
