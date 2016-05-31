@@ -20,7 +20,7 @@ import (
 
 type filetool struct {
 	encodingmap map[string]encoding.Encoding
-	file2coding map[string]string //没有设定的文件以默认编码方式读写
+	file2coding map[string]string //默认以UTF8编码方式读写
 }
 
 var instance *filetool
@@ -36,10 +36,7 @@ func GetInstance() *filetool {
 				"gb18030":   simplifiedchinese.GB18030,
 				"big5":      traditionalchinese.Big5,
 			},
-			file2coding: map[string]string{
-				"prefab": "gbk",
-				"tab":    "gbk",
-			},
+			file2coding: make(map[string]string),
 		}
 	})
 	return instance

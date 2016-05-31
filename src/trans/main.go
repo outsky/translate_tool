@@ -43,6 +43,17 @@ func writeLog(flag int, v ...interface{}) {
 }
 
 func init() {
+	// init file encoding, only non utf8 needed
+	ft := filetool.GetInstance()
+	//	if err := ft.SetEncoding("lua", "gbk"); err != nil {
+	//		writeLog(log_file|log_print, err)
+	//	}
+	if err := ft.SetEncoding("prefab", "gbk"); err != nil {
+		writeLog(log_file|log_print, err)
+	}
+	if err := ft.SetEncoding("tab", "gbk"); err != nil {
+		writeLog(log_file|log_print, err)
+	}
 	// create logger
 	flog, err := os.Create(const_log_file)
 	if err != nil {
@@ -52,7 +63,6 @@ func init() {
 	logPrint = log.New(os.Stdout, "[trans]", log.LstdFlags)
 	// init or read ignore config
 	filterMap = make(map[string]string)
-	ft := filetool.GetInstance()
 	bv, err := ft.ReadFileLine(const_ignore_file)
 	if err != nil {
 		writeLog(log_file, err)
