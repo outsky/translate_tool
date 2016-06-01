@@ -240,9 +240,17 @@ func Translate(src, des string, queue int) {
 		for _, v := range *entry {
 			trans, err := db.Query(v)
 			if err != nil {
-				mutex.Lock()
-				notrans = append(notrans, v)
-				mutex.Unlock()
+				bIsExsit := false
+				for _, m := range notrans {
+					if bytes.Compare(v, m) == 0 {
+						bIsExsit = true
+					}
+				}
+				if !bIsExsit {
+					mutex.Lock()
+					notrans = append(notrans, v)
+					mutex.Unlock()
+				}
 				continue
 			}
 			if err := ftranslate(&bv, v, trans); err != nil {

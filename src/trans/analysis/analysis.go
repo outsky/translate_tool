@@ -84,13 +84,7 @@ func (a *analysis) analysis_lua(text *[]byte) (*[][]byte, error) {
 			}
 		}
 		if bIsChinese {
-			slice := (*text)[start : end+1]
-			for _, v := range cnEntry {
-				if bytes.Compare(slice, v) == 0 {
-					return
-				}
-			}
-			cnEntry = append(cnEntry, slice)
+			cnEntry = append(cnEntry, (*text)[start:end+1])
 		}
 	}
 	nState := state_normal
@@ -209,7 +203,7 @@ func (a *analysis) analysis_lua(text *[]byte) (*[][]byte, error) {
 }
 
 func (a *analysis) translate_lua(context *[]byte, sText []byte, trans []byte) error {
-	(*context) = bytes.Replace(*context, sText, trans, -1)
+	(*context) = bytes.Replace(*context, sText, trans, 1)
 	return nil
 }
 
@@ -226,13 +220,7 @@ func (a *analysis) analysis_prefab(text *[]byte) (*[][]byte, error) {
 			}
 			unicode = strings.Replace(unicode, unicode[index:index+6], hanzi, 1)
 		}
-		slice := []byte(unicode)
-		for _, v := range cnEntry {
-			if bytes.Compare(slice, v) == 0 {
-				return
-			}
-		}
-		cnEntry = append(cnEntry, slice)
+		cnEntry = append(cnEntry, []byte(unicode))
 	}
 	nState := state_normal
 	nStateStart := 0
@@ -271,9 +259,11 @@ func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte)
 	}
 	textQuoted := strconv.QuoteToASCII(string(sText))
 	textUnquoted := prefabformat(textQuoted[1 : len(textQuoted)-1])
+	textUnquoted = strings.Replace(textUnquoted, "\\\\", "\\", -1)
 	transQuoted := strconv.QuoteToASCII(string(trans))
 	transUnquoted := prefabformat(transQuoted[1 : len(transQuoted)-1])
-	(*context) = bytes.Replace(*context, []byte(textUnquoted), []byte(transUnquoted), -1)
+	transUnquoted = strings.Replace(transUnquoted, "\\\\", "\\", -1)
+	(*context) = bytes.Replace(*context, []byte(textUnquoted), []byte(transUnquoted), 1)
 	return nil
 }
 
@@ -290,11 +280,6 @@ func (a *analysis) analysis_tab(text *[]byte) (*[][]byte, error) {
 			}
 		}
 		if bIsChinese {
-			for _, m := range cnEntry {
-				if bytes.Compare(v, m) == 0 {
-					continue
-				}
-			}
 			cnEntry = append(cnEntry, v)
 		}
 	}
@@ -302,6 +287,6 @@ func (a *analysis) analysis_tab(text *[]byte) (*[][]byte, error) {
 }
 
 func (a *analysis) translate_tab(context *[]byte, sText []byte, trans []byte) error {
-	(*context) = bytes.Replace(*context, sText, trans, -1)
+	(*context) = bytes.Replace(*context, sText, trans, 1)
 	return nil
 }
