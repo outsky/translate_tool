@@ -150,8 +150,8 @@ func (ft *filetool) ReadFileLine(name string) ([][]byte, error) {
 	var line []byte
 	for err == nil {
 		line, err = readline(r)
-		line = bytes.Trim(line, " ")
-		if len(line) > 0 {
+		temp := bytes.Trim(line, " ")
+		if len(temp) > 0 {
 			if coding != nil {
 				reader := transform.NewReader(bytes.NewReader(line), coding.NewDecoder())
 				dline, err := ioutil.ReadAll(reader)
@@ -178,8 +178,8 @@ func (ft *filetool) SaveFileLine(name string, context [][]byte) error {
 	length := len(context)
 	if length >= 1 {
 		for _, v := range context[:length] {
-			v = bytes.Trim(v, " ")
-			if len(v) > 0 {
+			temp := bytes.Trim(v, " ")
+			if len(temp) > 0 {
 				if coding != nil {
 					reader := transform.NewReader(bytes.NewReader(v), coding.NewEncoder())
 					ev, err := ioutil.ReadAll(reader)

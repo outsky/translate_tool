@@ -269,18 +269,31 @@ func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte)
 
 func (a *analysis) analysis_tab(text *[]byte) (*[][]byte, error) {
 	var cnEntry [][]byte
-	textv := bytes.Split(*text, []byte{tb})
-	for _, v := range textv {
-		v = bytes.Trim(v, string(sp))
-		bIsChinese := false
-		for i := 0; i < len(v); i++ {
-			if v[i]&0x80 != 0 {
-				bIsChinese = true
-				break
+	frecord := func(nStart, nEnd int) {
+		textv := bytes.Split((*text)[nStart:nEnd], []byte{tb})
+		for _, v := range textv {
+			v = bytes.Trim(v, string(sp))
+			bIsChinese := false
+			for i := 0; i < len(v); i++ {
+				if v[i]&0x80 != 0 {
+					bIsChinese = true
+					break
+				}
+			}
+			if bIsChinese {
+				cnEntry = append(cnEntry, v)
 			}
 		}
-		if bIsChinese {
-			cnEntry = append(cnEntry, v)
+	}
+	nStart := 0
+	length := len(*text)
+	for i := 0; i < length; i++ {
+		if (*text)[i] == cr || (*text)[i] == lf {
+			frecord(nStart, i)
+			nStart = i + 1
+		} else if i+1 < length && (*text)[i] == cr && (*text)[i] == lf {
+			frecord(nStart, i)
+			nStart = i + 2
 		}
 	}
 	return &cnEntry, nil

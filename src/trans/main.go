@@ -48,9 +48,9 @@ func init() {
 	//	if err := ft.SetEncoding("lua", "gbk"); err != nil {
 	//		writeLog(log_file|log_print, err)
 	//	}
-	if err := ft.SetEncoding("prefab", "gbk"); err != nil {
-		writeLog(log_file|log_print, err)
-	}
+	//	if err := ft.SetEncoding("prefab", "gbk"); err != nil {
+	//		writeLog(log_file|log_print, err)
+	//	}
 	if err := ft.SetEncoding("tab", "gbk"); err != nil {
 		writeLog(log_file|log_print, err)
 	}

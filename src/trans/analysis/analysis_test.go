@@ -51,6 +51,7 @@ func Test_tab(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	filetool.GetInstance().SetEncoding("tab", "gbk")
 	text, err := filetool.GetInstance().ReadAll("../test/cn/ScriptItem.tab")
 	if err != nil {
 		t.Fatal(err)
