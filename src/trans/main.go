@@ -42,53 +42,6 @@ func writeLog(flag int, v ...interface{}) {
 	}
 }
 
-func init() {
-	// init file encoding, only non utf8 needed
-	ft := filetool.GetInstance()
-	//	if err := ft.SetEncoding("lua", "gbk"); err != nil {
-	//		writeLog(log_file|log_print, err)
-	//	}
-	//	if err := ft.SetEncoding("prefab", "gbk"); err != nil {
-	//		writeLog(log_file|log_print, err)
-	//	}
-	if err := ft.SetEncoding("tab", "gbk"); err != nil {
-		writeLog(log_file|log_print, err)
-	}
-	// create logger
-	flog, err := os.Create(const_log_file)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	logFile = log.New(flog, "[trans]", log.LstdFlags)
-	logPrint = log.New(os.Stdout, "[trans]", log.LstdFlags)
-	// init or read ignore config
-	filterMap = make(map[string]string)
-	bv, err := ft.ReadFileLine(const_ignore_file)
-	if err != nil {
-		writeLog(log_file, err)
-		bv = [][]byte{
-			[]byte(";这里是忽略的文件，每个文件一行"),
-			[]byte(";例如test.lua"),
-			[]byte(";自动忽略注释和去空白"),
-			[]byte("cvs"),
-			[]byte(".git"),
-			[]byte(".svn"),
-		}
-		err = ft.SaveFileLine(const_ignore_file, bv)
-		if err != nil {
-			writeLog(log_file|log_print, err)
-		}
-	}
-	for _, v := range bv {
-		if v[0] == 0x3b {
-			continue
-		}
-		v = bytes.Trim(v, " ")
-		sv := string(v)
-		filterMap[sv] = sv
-	}
-}
-
 func filterFile(name string) error {
 	namev := strings.Split(name, "/")
 	for _, filename := range namev {
@@ -296,9 +249,57 @@ The commands are:
 Remark: Supports .lua, .prefab, .tab file`)
 }
 
+func initFilter() {
+	filterMap = make(map[string]string)
+	ft := filetool.GetInstance()
+	bv, err := ft.ReadFileLine(const_ignore_file)
+	if err != nil {
+		writeLog(log_file, err)
+		bv = [][]byte{
+			[]byte(";这里是忽略的文件，每个文件一行"),
+			[]byte(";例如test.lua"),
+			[]byte(";自动忽略注释和去空白"),
+			[]byte("cvs"),
+			[]byte(".git"),
+			[]byte(".svn"),
+		}
+		err = ft.SaveFileLine(const_ignore_file, bv)
+		if err != nil {
+			writeLog(log_file|log_print, err)
+		}
+	}
+	for _, v := range bv {
+		if v[0] == 0x3b {
+			continue
+		}
+		v = bytes.Trim(v, " ")
+		sv := string(v)
+		filterMap[sv] = sv
+	}
+}
+
 func main() {
 	//	defer profile.Start(profile.CPUProfile).Stop()
 	//	defer profile.Start(profile.MemProfile).Stop()
+
+	// create logger
+	flog, err := os.Create(const_log_file)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer flog.Close()
+	logFile = log.New(flog, "[trans]", log.LstdFlags)
+	logPrint = log.New(os.Stdout, "[trans]", log.LstdFlags)
+
+	// init file encoding, only non utf8 needed
+	if err := filetool.GetInstance().SetEncoding("tab", "gbk"); err != nil {
+		writeLog(log_file|log_print, err)
+	}
+
+	// init filter file
+	initFilter()
+
+	// main
 	switch len(os.Args) {
 	case 3:
 		if strings.EqualFold(os.Args[1], "getstring") {
