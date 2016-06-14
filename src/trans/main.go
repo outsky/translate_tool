@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -108,7 +108,7 @@ func GetString(filedir string) {
 		return
 	}
 	writeLog(log_file|log_print,
-		fmt.Sprintf("generate %s, view it. getstring finished!", const_chinese_file))
+		fmt.Sprintf("generate %s, line number: %d. getstring finished!", const_chinese_file, len(ret)))
 	return
 }
 
@@ -130,28 +130,20 @@ func Update(cnFile, transFile string) {
 	cnLen := len(cnText)
 	transLen := len(transText)
 	if cnLen != transLen {
-		writeLog(log_file|log_print, fmt.Sprintf("line number is not equal: %s:%d %s:%d",
-			cnFile, cnLen, transFile, transLen))
+		writeLog(log_file|log_print,
+			fmt.Sprintf("line number is not equal: %s:%d %s:%d", cnFile, cnLen, transFile, transLen))
 		return
 	}
 	db := dic.New(const_dic_file)
 	defer db.Close()
-	var count int = 0
 	for i := 0; i < cnLen; i++ {
 		if err := db.Insert(cnText[i], transText[i]); err != nil {
 			writeLog(log_file|log_print,
-				fmt.Sprintf("insert to db failed: %s:%s", cnText[i], transText[i]))
-		} else {
-			count++
+				fmt.Sprintf("insert to db failed at %d line: %s:%s", i, cnText[i], transText[i]))
 		}
 	}
-	if count != cnLen {
-		writeLog(log_file|log_print,
-			fmt.Sprintf("only insert %d line to dic, total %d.", count, cnLen))
-		return
-	}
 	writeLog(log_file|log_print,
-		fmt.Sprintf("update %d/%d line number to dic. update finished!", count, cnLen))
+		fmt.Sprintf("update %d line number to %s. update finished!", cnLen, const_dic_file))
 	return
 }
 
@@ -165,22 +157,22 @@ func Translate(src, des string, queue int) {
 		writeLog(log_file|log_print, err)
 		return
 	}
-	writeLog(log_file|log_print, fmt.Sprintf("translate files total: %d", len(fmap)))
 	db := dic.New(const_dic_file)
 	defer db.Close()
 	var notrans [][]byte
+	tatal, transcount := 0, 0
 	pool := gpool.New(queue)
 	mutex := &sync.Mutex{}
 	f := func(oldfile, newfile string) {
 		defer pool.Done()
 		var entry *[][]byte
-		anal := analysis.New()
-		fanalysis, ftranslate, err := anal.GetRule(oldfile)
-		bv, e := ft.ReadAll(oldfile)
-		if e != nil {
-			writeLog(log_file|log_print, e)
+		bv, err := ft.ReadAll(oldfile)
+		if err != nil {
+			writeLog(log_file|log_print, err)
 			return
 		}
+		anal := analysis.New()
+		fanalysis, ftranslate, err := anal.GetRule(oldfile)
 		if err != nil {
 			writeLog(log_file, err)
 			goto Point
@@ -214,7 +206,9 @@ func Translate(src, des string, queue int) {
 				writeLog(log_file|log_print, err)
 			}
 		}
+		transcount += 1
 	Point:
+		tatal += 1
 		ft.WriteAll(newfile, bv)
 	}
 	for i := 0; i < len(fmap); i++ {
@@ -229,9 +223,10 @@ func Translate(src, des string, queue int) {
 			return
 		}
 		writeLog(log_file|log_print,
-			fmt.Sprintf("update %s, line number: %d.", const_chinese_file, len(notrans)))
+			fmt.Sprintf("generate %s, line number: %d.", const_chinese_file, len(notrans)))
 	}
-	writeLog(log_file|log_print, "translate finished!")
+	writeLog(log_file|log_print,
+		fmt.Sprintf("translate file %d, copy file %d, finished!", transcount, tatal-transcount))
 	return
 }
 
@@ -307,22 +302,22 @@ func main() {
 	switch len(os.Args) {
 	case 3:
 		if strings.EqualFold(os.Args[1], "getstring") {
-			GetString(filepath.Clean(os.Args[2]))
+			GetString(path.Clean(os.Args[2]))
 		} else {
 			useage()
 		}
 	case 4:
 		if strings.EqualFold(os.Args[1], "update") {
-			Update(filepath.Clean(os.Args[2]), filepath.Clean(os.Args[3]))
+			Update(path.Clean(os.Args[2]), path.Clean(os.Args[3]))
 		} else if strings.EqualFold(os.Args[1], "translate") {
-			Translate(filepath.Clean(os.Args[2]), filepath.Clean(os.Args[3]), 1)
+			Translate(path.Clean(os.Args[2]), path.Clean(os.Args[3]), 1)
 		} else {
 			useage()
 		}
 	case 5:
 		if strings.EqualFold(os.Args[1], "translate") {
 			queue, _ := strconv.ParseInt(os.Args[4], 10, 0)
-			Translate(filepath.Clean(os.Args[2]), filepath.Clean(os.Args[3]), int(queue))
+			Translate(path.Clean(os.Args[2]), path.Clean(os.Args[3]), int(queue))
 		} else {
 			useage()
 		}
