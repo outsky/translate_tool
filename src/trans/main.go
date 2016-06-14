@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,6 +55,7 @@ func filterFile(name string) error {
 
 func GetString(filedir string) {
 	filedir = strings.Replace(filedir, "\\", "/", -1)
+	writeLog(log_file|log_print, fmt.Sprintf("extract chinese from %s", filedir))
 	ft := filetool.GetInstance()
 	fmap, err := ft.GetFilesMap(filedir)
 	if err != nil {
@@ -113,6 +115,7 @@ func GetString(filedir string) {
 func Update(cnFile, transFile string) {
 	cnFile = strings.Replace(cnFile, "\\", "/", -1)
 	transFile = strings.Replace(transFile, "\\", "/", -1)
+	writeLog(log_file|log_print, fmt.Sprintf("update dictionary from %s to %s", cnFile, transFile))
 	ft := filetool.GetInstance()
 	cnText, err1 := ft.ReadFileLine(cnFile)
 	if err1 != nil {
@@ -155,6 +158,7 @@ func Update(cnFile, transFile string) {
 func Translate(src, des string, queue int) {
 	src = strings.Replace(src, "\\", "/", -1)
 	des = strings.Replace(des, "\\", "/", -1)
+	writeLog(log_file|log_print, fmt.Sprintf("translate %s to %s", src, des))
 	ft := filetool.GetInstance()
 	fmap, err := ft.GetFilesMap(src)
 	if err != nil {
@@ -303,22 +307,22 @@ func main() {
 	switch len(os.Args) {
 	case 3:
 		if strings.EqualFold(os.Args[1], "getstring") {
-			GetString(os.Args[2])
+			GetString(filepath.Clean(os.Args[2]))
 		} else {
 			useage()
 		}
 	case 4:
 		if strings.EqualFold(os.Args[1], "update") {
-			Update(os.Args[2], os.Args[3])
+			Update(filepath.Clean(os.Args[2]), filepath.Clean(os.Args[3]))
 		} else if strings.EqualFold(os.Args[1], "translate") {
-			Translate(os.Args[2], os.Args[3], 1)
+			Translate(filepath.Clean(os.Args[2]), filepath.Clean(os.Args[3]), 1)
 		} else {
 			useage()
 		}
 	case 5:
 		if strings.EqualFold(os.Args[1], "translate") {
 			queue, _ := strconv.ParseInt(os.Args[4], 10, 0)
-			Translate(os.Args[2], os.Args[3], int(queue))
+			Translate(filepath.Clean(os.Args[2]), filepath.Clean(os.Args[3]), int(queue))
 		} else {
 			useage()
 		}
