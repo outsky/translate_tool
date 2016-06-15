@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -42,7 +43,7 @@ func New() *analysis {
 	}
 }
 
-func (a *analysis) Uc2hanzi(uc string) (string, error) {
+func (a *analysis) uc2hanzi(uc string) (string, error) {
 	if hz, ok := a.uc2hz[uc]; ok {
 		return hz, nil
 	}
@@ -53,6 +54,33 @@ func (a *analysis) Uc2hanzi(uc string) (string, error) {
 	context := fmt.Sprintf("%c", val2int)
 	a.uc2hz[uc] = context
 	return context, nil
+}
+
+func (a *analysis) filter(text []byte) bool {
+	// 过滤非中文
+	bChinese := false
+	for i := 0; i < len(text); i++ {
+		if text[i]&0x80 != 0 {
+			bChinese = true
+			break
+		}
+	}
+	if !bChinese {
+		return false
+	}
+	// 过滤路径
+	path := string(text)
+	path = strings.Replace(path, "\\", "/", -1)
+	pathv := strings.Split(path, "/")
+	filev := strings.Split(pathv[len(pathv)-1], ".")
+	if pathv[0] == "" && len(filev) == 2 {
+		return false
+	}
+	_, err := os.Stat(path)
+	if err == nil {
+		return false
+	}
+	return true
 }
 
 func (a *analysis) GetRule(file string) (
@@ -76,15 +104,9 @@ func (a *analysis) GetRule(file string) (
 func (a *analysis) analysis_lua(text *[]byte) (*[][]byte, error) {
 	var cnEntry [][]byte
 	frecord := func(start, end int) {
-		bIsChinese := false
-		for i := start; i <= end; i++ {
-			if (*text)[i]&0x80 != 0 {
-				bIsChinese = true
-				break
-			}
-		}
-		if bIsChinese {
-			cnEntry = append(cnEntry, (*text)[start:end+1])
+		slice := (*text)[start : end+1]
+		if a.filter(slice) {
+			cnEntry = append(cnEntry, slice)
 		}
 	}
 	nState := state_normal
@@ -214,7 +236,7 @@ func (a *analysis) analysis_prefab(text *[]byte) (*[][]byte, error) {
 		unicode := string((*text)[start : end+1])
 		index := strings.Index(unicode, tag)
 		for ; index != -1; index = strings.Index(unicode, tag) {
-			hanzi, err := a.Uc2hanzi(unicode[index+2 : index+6])
+			hanzi, err := a.uc2hanzi(unicode[index+2 : index+6])
 			if err != nil {
 				panic(err)
 			}
@@ -273,14 +295,7 @@ func (a *analysis) analysis_tab(text *[]byte) (*[][]byte, error) {
 		textv := bytes.Split((*text)[nStart:nEnd], []byte{tb})
 		for _, v := range textv {
 			v = bytes.Trim(v, string(sp))
-			bIsChinese := false
-			for i := 0; i < len(v); i++ {
-				if v[i]&0x80 != 0 {
-					bIsChinese = true
-					break
-				}
-			}
-			if bIsChinese {
+			if a.filter(v) {
 				cnEntry = append(cnEntry, v)
 			}
 		}

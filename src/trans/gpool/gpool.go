@@ -10,8 +10,8 @@ type pool struct {
 }
 
 func New(size int) *pool {
-	if size <= 0 {
-		size = 1
+	if size < 1 {
+		panic("queue too small")
 	}
 	return &pool{
 		queue: make(chan int, size),
