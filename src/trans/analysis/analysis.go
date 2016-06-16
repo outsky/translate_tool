@@ -25,7 +25,6 @@ var (
 	cr byte = 0x0d //回车CR
 	lf byte = 0x0a //换行LF
 	eq byte = 0x3d //等于号=
-	sp byte = 0x20 //空格
 	tb byte = 0x09 //tab制表符
 	uu byte = 0x75 //u字符
 )
@@ -106,7 +105,7 @@ func (a *analysis) SetFilterFileEx(fileex []string) {
 
 func (a *analysis) GetRule(file string) (
 	func([]byte) ([][]byte, error),
-	func([]byte, []byte, []byte) error,
+	func(*[]byte, []byte, []byte) error,
 	error) {
 	filev := strings.Split(file, ".")
 	file_ex := filev[len(filev)-1]
@@ -245,8 +244,8 @@ func (a *analysis) analysis_lua(text []byte) ([][]byte, error) {
 	return cnEntry, nil
 }
 
-func (a *analysis) translate_lua(context []byte, sText []byte, trans []byte) error {
-	context = bytes.Replace(context, sText, trans, 1)
+func (a *analysis) translate_lua(context *[]byte, sText []byte, trans []byte) error {
+	*context = bytes.Replace(*context, sText, trans, 1)
 	return nil
 }
 
@@ -289,7 +288,7 @@ func (a *analysis) analysis_prefab(text []byte) ([][]byte, error) {
 	return cnEntry, nil
 }
 
-func (a *analysis) translate_prefab(context []byte, sText []byte, trans []byte) error {
+func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte) error {
 	prefabformat := func(s string) string {
 		length := len(s)
 		for i := 0; i+5 < length; i++ {
@@ -306,7 +305,7 @@ func (a *analysis) translate_prefab(context []byte, sText []byte, trans []byte) 
 	transQuoted := strconv.QuoteToASCII(string(trans))
 	transUnquoted := prefabformat(transQuoted[1 : len(transQuoted)-1])
 	transUnquoted = strings.Replace(transUnquoted, "\\\\", "\\", -1)
-	context = bytes.Replace(context, []byte(textUnquoted), []byte(transUnquoted), 1)
+	*context = bytes.Replace(*context, []byte(textUnquoted), []byte(transUnquoted), 1)
 	return nil
 }
 
@@ -335,7 +334,7 @@ func (a *analysis) analysis_tab(text []byte) ([][]byte, error) {
 	return cnEntry, nil
 }
 
-func (a *analysis) translate_tab(context []byte, sText []byte, trans []byte) error {
-	context = bytes.Replace(context, sText, trans, 1)
+func (a *analysis) translate_tab(context *[]byte, sText []byte, trans []byte) error {
+	*context = bytes.Replace(*context, sText, trans, 1)
 	return nil
 }
