@@ -19,13 +19,17 @@ import (
 )
 
 const (
+	const_config_file  string = "config.ini"
 	const_ignore_file  string = "ignore.conf"
 	const_chinese_file string = "chinese.txt"
 	const_dic_file     string = "dictionary.db"
 	const_log_file     string = "log.txt"
 )
 
+var encodeMap map[string]string
 var filterMap map[string]string
+var filterExtension []string
+
 var logFile *log.Logger
 var logPrint *log.Logger
 
@@ -63,7 +67,7 @@ func GetString(filedir string) {
 		return
 	}
 	var entry_total [][]byte
-	anal := analysis.New()
+	anal := analysis.GetInstance()
 	for i := 0; i < len(fmap); i++ {
 		if err := filterFile(fmap[i]); err != nil {
 			writeLog(log_file, err)
@@ -79,11 +83,11 @@ func GetString(filedir string) {
 			writeLog(log_file|log_print, err)
 			continue
 		}
-		entry, err := fanalysis(&context)
+		entry, err := fanalysis(context)
 		if err != nil {
 			writeLog(log_file|log_print, err)
 		}
-		for _, v := range *entry {
+		for _, v := range entry {
 			bIsExsit := false
 			for _, m := range entry_total {
 				if bytes.Compare(v, m) == 0 {
@@ -165,13 +169,13 @@ func Translate(src, des string, queue int) {
 	mutex := &sync.Mutex{}
 	f := func(oldfile, newfile string) {
 		defer pool.Done()
-		var entry *[][]byte
+		var entry [][]byte
 		bv, err := ft.ReadAll(oldfile)
 		if err != nil {
 			writeLog(log_file|log_print, err)
 			return
 		}
-		anal := analysis.New()
+		anal := analysis.GetInstance()
 		fanalysis, ftranslate, err := anal.GetRule(oldfile)
 		if err != nil {
 			writeLog(log_file, err)
@@ -181,12 +185,12 @@ func Translate(src, des string, queue int) {
 			writeLog(log_file, err)
 			goto Point
 		}
-		entry, err = fanalysis(&bv)
+		entry, err = fanalysis(bv)
 		if err != nil {
 			writeLog(log_file|log_print, err)
 			goto Point
 		}
-		for _, v := range *entry {
+		for _, v := range entry {
 			trans, err := db.Query(v)
 			if err != nil {
 				bIsExsit := false
@@ -202,7 +206,7 @@ func Translate(src, des string, queue int) {
 				}
 				continue
 			}
-			if err := ftranslate(&bv, v, trans); err != nil {
+			if err := ftranslate(bv, v, trans); err != nil {
 				writeLog(log_file|log_print, err)
 			}
 		}
@@ -248,8 +252,74 @@ The commands are:
 Remark: Supports .lua, .prefab, .tab file`)
 }
 
+func initConfig() {
+	ft := filetool.GetInstance()
+	bv, err := ft.ReadFileLine(const_config_file)
+	if err != nil {
+		writeLog(log_file, err)
+		bv = [][]byte{
+			[]byte(";指定文件类型的编码,支持utf8，gbk，hz-gb2312，gb18030，big5"),
+			[]byte("[encode]"),
+			[]byte("lua=utf8"),
+			[]byte("prefab=utf8"),
+			[]byte("tab=gbk"),
+			[]byte(";指定类型的扩展名为路径，为了过滤不需要翻译的路径"),
+			[]byte("[filter]"),
+			[]byte("extension=lua,prefab,tab"),
+		}
+		err = ft.SaveFileLine(const_config_file, bv)
+		if err != nil {
+			writeLog(log_file|log_print, err)
+		}
+	}
+	encodeMap = make(map[string]string)
+	filterExtension = make([]string, 0)
+	var nType int
+	for _, v := range bv {
+		if v[0] == 0x3b {
+			continue
+		}
+		s := string(v)
+		s = strings.TrimSpace(s)
+		if len(s) <= 0 {
+			continue
+		}
+		switch s {
+		case "[encode]":
+			nType = 1
+		case "[filter]":
+			nType = 2
+		default:
+			switch nType {
+			case 1:
+				kv := strings.Split(s, "=")
+				if len(kv) != 2 {
+					writeLog(log_file|log_print, fmt.Sprintf("config error: %s", s))
+				} else {
+					encodeMap[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+				}
+			case 2:
+				kv := strings.Split(s, "=")
+				if len(kv) != 2 {
+					writeLog(log_file|log_print, fmt.Sprintf("config error: %s", s))
+				} else {
+					exv := strings.Split(kv[1], ",")
+					for _, elem := range exv {
+						filterExtension = append(filterExtension, strings.TrimSpace(elem))
+					}
+				}
+			}
+		}
+	}
+	for k, v := range encodeMap {
+		if err := ft.SetEncoding(k, v); err != nil {
+			writeLog(log_file|log_print, err)
+		}
+	}
+	analysis.GetInstance().SetFilterFileEx(filterExtension)
+}
+
 func initFilter() {
-	filterMap = make(map[string]string)
 	ft := filetool.GetInstance()
 	bv, err := ft.ReadFileLine(const_ignore_file)
 	if err != nil {
@@ -267,13 +337,16 @@ func initFilter() {
 			writeLog(log_file|log_print, err)
 		}
 	}
+	filterMap = make(map[string]string)
 	for _, v := range bv {
 		if v[0] == 0x3b {
 			continue
 		}
-		v = bytes.Trim(v, " ")
-		sv := string(v)
-		filterMap[sv] = sv
+		s := string(v)
+		s = strings.TrimSpace(s)
+		if len(s) > 0 {
+			filterMap[s] = s
+		}
 	}
 }
 
@@ -290,10 +363,8 @@ func main() {
 	logFile = log.New(flog, "[trans]", log.LstdFlags)
 	logPrint = log.New(os.Stdout, "[trans]", log.LstdFlags)
 
-	// init file encoding, only non utf8 needed
-	if err := filetool.GetInstance().SetEncoding("tab", "gbk"); err != nil {
-		writeLog(log_file|log_print, err)
-	}
+	// init config
+	initConfig()
 
 	// init filter file
 	initFilter()
