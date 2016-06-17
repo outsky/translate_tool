@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,6 +25,7 @@ const (
 	const_log_file     string = "log.txt"
 )
 
+var rulesMap map[string]string
 var encodeMap map[string]string
 var filterMap map[string]string
 var filterExtension []string
@@ -73,6 +73,7 @@ func GetString(filedir string) {
 	}
 	var entry_total [][]byte
 	anal := analysis.GetInstance()
+	anal.SetRule(rulesMap)
 	anal.SetFilterFileEx(filterExtension)
 	for i := 0; i < len(fmap); i++ {
 		if err := filterFile(fmap[i]); err != nil {
@@ -113,7 +114,7 @@ func GetString(filedir string) {
 			ret = append(ret, entry_total[i])
 		}
 	}
-	ft.SetEncoding("txt", "utf8")
+	ft.SetEncoding(const_chinese_file, "utf8")
 	if err := ft.SaveFileLine(const_chinese_file, ret); err != nil {
 		writeLog(log_file|log_print, err)
 		return
@@ -159,8 +160,8 @@ func Update(cnFile, transFile string) {
 }
 
 func Translate(src, des string, queue int) {
-	src = strings.Replace(src, "\\", "/", -1)
-	des = strings.Replace(des, "\\", "/", -1)
+	src = strings.TrimRight(strings.Replace(src, "\\", "/", -1), "/")
+	des = strings.TrimRight(strings.Replace(des, "\\", "/", -1), "/")
 	writeLog(log_file|log_print, fmt.Sprintf("translate %s to %s", src, des))
 	ft := filetool.GetInstance()
 	for k, v := range encodeMap {
@@ -180,6 +181,7 @@ func Translate(src, des string, queue int) {
 	pool := gpool.New(queue)
 	mutex := &sync.Mutex{}
 	anal := analysis.GetInstance()
+	anal.SetRule(rulesMap)
 	anal.SetFilterFileEx(filterExtension)
 	f := func(oldfile, newfile string) {
 		defer pool.Done()
@@ -235,7 +237,7 @@ func Translate(src, des string, queue int) {
 	}
 	pool.Wait()
 	if len(notrans) > 0 {
-		ft.SetEncoding("txt", "utf8")
+		ft.SetEncoding(const_chinese_file, "utf8")
 		if err := ft.SaveFileLine(const_chinese_file, notrans); err != nil {
 			writeLog(log_file|log_print, err)
 			return
@@ -272,12 +274,17 @@ func initConfig() {
 	if err != nil {
 		writeLog(log_file, err)
 		bv = [][]byte{
-			[]byte(";指定文件类型的编码,支持utf8，gbk，hz-gb2312，gb18030，big5"),
+			[]byte(";指定提取规则，支持‘lua_rules’，‘prefab_rules’，‘table_rules’"),
+			[]byte("[rules]"),
+			[]byte("lua=lua_rules"),
+			[]byte("prefab=prefab_rules"),
+			[]byte("tab=table_rules"),
+			[]byte(";指定读写编码，支持utf8，gbk，hz-gb2312，gb18030，big5"),
 			[]byte("[encode]"),
 			[]byte("lua=utf8"),
 			[]byte("prefab=utf8"),
 			[]byte("tab=gbk"),
-			[]byte(";指定类型的扩展名为路径，为了过滤不需要翻译的路径"),
+			[]byte(";指定扩展名为路径，为了过滤不需要翻译的路径"),
 			[]byte("[filter]"),
 			[]byte("extension=lua,prefab,tab"),
 		}
@@ -286,6 +293,7 @@ func initConfig() {
 			writeLog(log_file|log_print, err)
 		}
 	}
+	rulesMap = make(map[string]string)
 	encodeMap = make(map[string]string)
 	filterExtension = make([]string, 0)
 	var nType int
@@ -299,28 +307,34 @@ func initConfig() {
 			continue
 		}
 		switch s {
-		case "[encode]":
+		case "[rules]":
 			nType = 1
-		case "[filter]":
+		case "[encode]":
 			nType = 2
+		case "[filter]":
+			nType = 3
 		default:
 			switch nType {
 			case 1:
 				kv := strings.Split(s, "=")
 				if len(kv) != 2 {
-					writeLog(log_file|log_print, fmt.Sprintf("config error: %s", s))
-				} else {
-					encodeMap[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+					panic(fmt.Sprintf("config error: %s", s))
 				}
+				rulesMap[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
 			case 2:
 				kv := strings.Split(s, "=")
 				if len(kv) != 2 {
-					writeLog(log_file|log_print, fmt.Sprintf("config error: %s", s))
-				} else {
-					exv := strings.Split(kv[1], ",")
-					for _, elem := range exv {
-						filterExtension = append(filterExtension, strings.TrimSpace(elem))
-					}
+					panic(fmt.Sprintf("config error: %s", s))
+				}
+				encodeMap[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+			case 3:
+				kv := strings.Split(s, "=")
+				if len(kv) != 2 {
+					panic(fmt.Sprintf("config error: %s", s))
+				}
+				exv := strings.Split(kv[1], ",")
+				for _, elem := range exv {
+					filterExtension = append(filterExtension, strings.TrimSpace(elem))
 				}
 			}
 		}
@@ -381,22 +395,22 @@ func main() {
 	switch len(os.Args) {
 	case 3:
 		if strings.EqualFold(os.Args[1], "getstring") {
-			GetString(path.Clean(os.Args[2]))
+			GetString(os.Args[2])
 		} else {
 			useage()
 		}
 	case 4:
 		if strings.EqualFold(os.Args[1], "update") {
-			Update(path.Clean(os.Args[2]), path.Clean(os.Args[3]))
+			Update(os.Args[2], os.Args[3])
 		} else if strings.EqualFold(os.Args[1], "translate") {
-			Translate(path.Clean(os.Args[2]), path.Clean(os.Args[3]), 1)
+			Translate(os.Args[2], os.Args[3], 1)
 		} else {
 			useage()
 		}
 	case 5:
 		if strings.EqualFold(os.Args[1], "translate") {
 			queue, _ := strconv.ParseInt(os.Args[4], 10, 0)
-			Translate(path.Clean(os.Args[2]), path.Clean(os.Args[3]), int(queue))
+			Translate(os.Args[2], os.Args[3], int(queue))
 		} else {
 			useage()
 		}

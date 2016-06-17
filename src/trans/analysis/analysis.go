@@ -10,9 +10,9 @@ import (
 )
 
 type analysis struct {
-	uc2hz  map[string]string         // unicode转汉字缓存
-	rules  map[int]func([]byte) bool // 文字提取过滤规则
-	fileex []string                  // 过滤指定文件扩展名是否为路径
+	filterRules   map[int]func([]byte) bool // 文字提取过滤规则
+	fileExtension []string                  // 过滤指定扩展名的文件路径
+	extracatRules map[string]string         // 扩展名到提取规则的映射
 }
 
 var (
@@ -38,34 +38,34 @@ const (
 	state_double_brackets        //[[中括号]]字符串
 )
 
+const (
+	const_rule_lua       = "lua_rules"
+	const_rule_prefab    = "prefab_rules"
+	const_rule_tablefile = "table_rules"
+)
+
 var instance *analysis
 var once sync.Once
 
 func GetInstance() *analysis {
 	once.Do(func() {
 		instance = &analysis{
-			uc2hz:  make(map[string]string),
-			rules:  make(map[int]func([]byte) bool),
-			fileex: make([]string, 0),
+			filterRules:   make(map[int]func([]byte) bool),
+			fileExtension: make([]string, 0),
+			extracatRules: make(map[string]string),
 		}
-		instance.rules[1] = instance.ischinese
-		instance.rules[2] = instance.isnotpath
-
+		instance.filterRules[1] = instance.ischinese
+		instance.filterRules[2] = instance.isnotpath
 	})
 	return instance
 }
 
 func (a *analysis) uc2hanzi(uc string) (string, error) {
-	if hz, ok := a.uc2hz[uc]; ok {
-		return hz, nil
-	}
 	val2int, err := strconv.ParseInt(uc, 16, 32)
 	if err != nil {
 		return uc, err
 	}
-	context := fmt.Sprintf("%c", val2int)
-	a.uc2hz[uc] = context
-	return context, nil
+	return fmt.Sprintf("%c", val2int), nil
 }
 
 func (a *analysis) ischinese(text []byte) bool {
@@ -81,7 +81,7 @@ func (a *analysis) isnotpath(text []byte) bool {
 	path := string(text)
 	filev := strings.Split(path, ".")
 	if len(filev) == 2 {
-		for _, v := range a.fileex {
+		for _, v := range a.fileExtension {
 			if strings.EqualFold(filev[1], v) {
 				return false
 			}
@@ -91,8 +91,8 @@ func (a *analysis) isnotpath(text []byte) bool {
 }
 
 func (a *analysis) filter(text []byte) bool {
-	for i := 1; i <= len(a.rules); i++ {
-		if !a.rules[i](text) {
+	for i := 1; i <= len(a.filterRules); i++ {
+		if !a.filterRules[i](text) {
 			return false
 		}
 	}
@@ -100,7 +100,11 @@ func (a *analysis) filter(text []byte) bool {
 }
 
 func (a *analysis) SetFilterFileEx(fileex []string) {
-	a.fileex = fileex
+	a.fileExtension = fileex
+}
+
+func (a *analysis) SetRule(rules map[string]string) {
+	a.extracatRules = rules
 }
 
 func (a *analysis) GetRule(file string) (
@@ -109,12 +113,16 @@ func (a *analysis) GetRule(file string) (
 	error) {
 	filev := strings.Split(file, ".")
 	file_ex := filev[len(filev)-1]
-	switch file_ex {
-	case "lua":
+	rule, ok := a.extracatRules[file_ex]
+	if !ok {
+		return nil, nil, errors.New(fmt.Sprintf("[file not rule] %s", file))
+	}
+	switch rule {
+	case const_rule_lua:
 		return a.analysis_lua, a.translate_lua, nil
-	case "prefab":
+	case const_rule_prefab:
 		return a.analysis_prefab, a.translate_prefab, nil
-	case "tab":
+	case const_rule_tablefile:
 		return a.analysis_tab, a.translate_tab, nil
 	default:
 		return nil, nil, errors.New(fmt.Sprintf("[file not rule] %s", file))
