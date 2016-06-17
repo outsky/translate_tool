@@ -27,7 +27,7 @@ const (
 
 var rulesMap map[string]string
 var encodeMap map[string]string
-var filterMap map[string]string
+var filterMap map[string]bool
 var filterExtension []string
 
 var logFile *log.Logger
@@ -38,11 +38,18 @@ const (
 	log_print
 )
 
-func writeLog(flag int, v ...interface{}) {
+const (
+	log_info  string = "[INFO]  "
+	log_error string = "[ERROR] "
+)
+
+func writeLog(flag int, level string, v ...interface{}) {
 	if flag&log_file != 0 {
+		logFile.SetPrefix(level)
 		logFile.Println(v...)
 	}
 	if flag&log_print != 0 {
+		logPrint.SetPrefix(level)
 		logPrint.Println(v...)
 	}
 }
@@ -59,16 +66,16 @@ func filterFile(name string) error {
 
 func GetString(filedir string) {
 	filedir = strings.Replace(filedir, "\\", "/", -1)
-	writeLog(log_file|log_print, fmt.Sprintf("extract chinese from %s", filedir))
+	writeLog(log_file|log_print, log_info, fmt.Sprintf("extract chinese from %s", filedir))
 	ft := filetool.GetInstance()
 	for k, v := range encodeMap {
 		if err := ft.SetEncoding(k, v); err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_error, err)
 		}
 	}
 	fmap, err := ft.GetFilesMap(filedir)
 	if err != nil {
-		writeLog(log_file|log_print, err)
+		writeLog(log_file|log_print, log_error, err)
 		return
 	}
 	var entry_total [][]byte
@@ -77,22 +84,22 @@ func GetString(filedir string) {
 	anal.SetFilterFileEx(filterExtension)
 	for i := 0; i < len(fmap); i++ {
 		if err := filterFile(fmap[i]); err != nil {
-			writeLog(log_file, err)
+			writeLog(log_file|log_print, log_info, err)
 			continue
 		}
 		fanalysis, _, err := anal.GetRule(fmap[i])
 		if err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_info, err)
 			continue
 		}
 		context, err := ft.ReadAll(fmap[i])
 		if err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_info, err)
 			continue
 		}
 		entry, err := fanalysis(context)
 		if err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_error, err)
 		}
 		for _, v := range entry {
 			bIsExsit := false
@@ -116,10 +123,10 @@ func GetString(filedir string) {
 	}
 	ft.SetEncoding(const_chinese_file, "utf8")
 	if err := ft.SaveFileLine(const_chinese_file, ret); err != nil {
-		writeLog(log_file|log_print, err)
+		writeLog(log_file|log_print, log_error, err)
 		return
 	}
-	writeLog(log_file|log_print,
+	writeLog(log_file|log_print, log_info,
 		fmt.Sprintf("generate %s, line number: %d. getstring finished!", const_chinese_file, len(ret)))
 	return
 }
@@ -127,22 +134,22 @@ func GetString(filedir string) {
 func Update(cnFile, transFile string) {
 	cnFile = strings.Replace(cnFile, "\\", "/", -1)
 	transFile = strings.Replace(transFile, "\\", "/", -1)
-	writeLog(log_file|log_print, fmt.Sprintf("update dictionary from %s to %s", cnFile, transFile))
+	writeLog(log_file|log_print, log_info, fmt.Sprintf("update dictionary from %s to %s", cnFile, transFile))
 	ft := filetool.GetInstance()
 	cnText, err1 := ft.ReadFileLine(cnFile)
 	if err1 != nil {
-		writeLog(log_file|log_print, err1)
+		writeLog(log_file|log_print, log_error, err1)
 		return
 	}
 	transText, err2 := ft.ReadFileLine(transFile)
 	if err2 != nil {
-		writeLog(log_file|log_print, err2)
+		writeLog(log_file|log_print, log_error, err2)
 		return
 	}
 	cnLen := len(cnText)
 	transLen := len(transText)
 	if cnLen != transLen {
-		writeLog(log_file|log_print,
+		writeLog(log_file|log_print, log_error,
 			fmt.Sprintf("line number is not equal: %s:%d %s:%d", cnFile, cnLen, transFile, transLen))
 		return
 	}
@@ -150,11 +157,11 @@ func Update(cnFile, transFile string) {
 	defer db.Close()
 	for i := 0; i < cnLen; i++ {
 		if err := db.Insert(cnText[i], transText[i]); err != nil {
-			writeLog(log_file|log_print,
+			writeLog(log_file|log_print, log_error,
 				fmt.Sprintf("insert to db failed at %d line: %s:%s", i, cnText[i], transText[i]))
 		}
 	}
-	writeLog(log_file|log_print,
+	writeLog(log_file|log_print, log_info,
 		fmt.Sprintf("update %d line number to %s. update finished!", cnLen, const_dic_file))
 	return
 }
@@ -162,16 +169,16 @@ func Update(cnFile, transFile string) {
 func Translate(src, des string, queue int) {
 	src = strings.TrimRight(strings.Replace(src, "\\", "/", -1), "/")
 	des = strings.TrimRight(strings.Replace(des, "\\", "/", -1), "/")
-	writeLog(log_file|log_print, fmt.Sprintf("translate %s to %s", src, des))
+	writeLog(log_file|log_print, log_info, fmt.Sprintf("translate %s to %s", src, des))
 	ft := filetool.GetInstance()
 	for k, v := range encodeMap {
 		if err := ft.SetEncoding(k, v); err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_error, err)
 		}
 	}
 	fmap, err := ft.GetFilesMap(src)
 	if err != nil {
-		writeLog(log_file|log_print, err)
+		writeLog(log_file|log_print, log_error, err)
 		return
 	}
 	db := dic.New(const_dic_file)
@@ -188,21 +195,21 @@ func Translate(src, des string, queue int) {
 		var entry [][]byte
 		bv, err := ft.ReadAll(oldfile)
 		if err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_error, err)
 			return
 		}
 		fanalysis, ftranslate, err := anal.GetRule(oldfile)
 		if err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_info, err)
 			goto Point
 		}
 		if err = filterFile(oldfile); err != nil {
-			writeLog(log_file, err)
+			writeLog(log_file|log_print, log_info, err)
 			goto Point
 		}
 		entry, err = fanalysis(bv)
 		if err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_error, err)
 			goto Point
 		}
 		for _, v := range entry {
@@ -222,7 +229,7 @@ func Translate(src, des string, queue int) {
 				continue
 			}
 			if err := ftranslate(&bv, v, trans); err != nil {
-				writeLog(log_file|log_print, err)
+				writeLog(log_file|log_print, log_error, err)
 			}
 		}
 		transcount += 1
@@ -239,13 +246,13 @@ func Translate(src, des string, queue int) {
 	if len(notrans) > 0 {
 		ft.SetEncoding(const_chinese_file, "utf8")
 		if err := ft.SaveFileLine(const_chinese_file, notrans); err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_error, err)
 			return
 		}
-		writeLog(log_file|log_print,
+		writeLog(log_file|log_print, log_info,
 			fmt.Sprintf("generate %s, line number: %d.", const_chinese_file, len(notrans)))
 	}
-	writeLog(log_file|log_print,
+	writeLog(log_file|log_print, log_info,
 		fmt.Sprintf("translate file %d, copy file %d, finished!", transcount, tatal-transcount))
 	return
 }
@@ -272,7 +279,7 @@ func initConfig() {
 	ft := filetool.GetInstance()
 	bv, err := ft.ReadFileLine(const_config_file)
 	if err != nil {
-		writeLog(log_file, err)
+		writeLog(log_file, log_info, err)
 		bv = [][]byte{
 			[]byte(";通过文件扩展名配置提取规则"),
 			[]byte(";支持‘lua_rules’，‘prefab_rules’，‘table_rules’"),
@@ -292,7 +299,7 @@ func initConfig() {
 		}
 		err = ft.SaveFileLine(const_config_file, bv)
 		if err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_error, err)
 		}
 	}
 	rulesMap = make(map[string]string)
@@ -347,7 +354,7 @@ func initFilter() {
 	ft := filetool.GetInstance()
 	bv, err := ft.ReadFileLine(const_ignore_file)
 	if err != nil {
-		writeLog(log_file, err)
+		writeLog(log_file, log_info, err)
 		bv = [][]byte{
 			[]byte(";这里是忽略的文件，每个文件一行"),
 			[]byte(";例如test.lua"),
@@ -358,10 +365,10 @@ func initFilter() {
 		}
 		err = ft.SaveFileLine(const_ignore_file, bv)
 		if err != nil {
-			writeLog(log_file|log_print, err)
+			writeLog(log_file|log_print, log_error, err)
 		}
 	}
-	filterMap = make(map[string]string)
+	filterMap = make(map[string]bool)
 	for _, v := range bv {
 		if v[0] == 0x3b {
 			continue
@@ -369,7 +376,7 @@ func initFilter() {
 		s := string(v)
 		s = strings.TrimSpace(s)
 		if len(s) > 0 {
-			filterMap[s] = s
+			filterMap[s] = true
 		}
 	}
 }
@@ -384,8 +391,8 @@ func main() {
 		log.Fatalln(err)
 	}
 	defer flog.Close()
-	logFile = log.New(flog, "[trans]", log.LstdFlags)
-	logPrint = log.New(os.Stdout, "[trans]", log.LstdFlags)
+	logFile = log.New(flog, "", log.LstdFlags)
+	logPrint = log.New(os.Stdout, "", log.LstdFlags)
 
 	// init config
 	initConfig()
