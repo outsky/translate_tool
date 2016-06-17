@@ -82,7 +82,7 @@ func GetString(filedir string) {
 		}
 		fanalysis, _, err := anal.GetRule(fmap[i])
 		if err != nil {
-			writeLog(log_file, err)
+			writeLog(log_file|log_print, err)
 			continue
 		}
 		context, err := ft.ReadAll(fmap[i])
@@ -193,7 +193,7 @@ func Translate(src, des string, queue int) {
 		}
 		fanalysis, ftranslate, err := anal.GetRule(oldfile)
 		if err != nil {
-			writeLog(log_file, err)
+			writeLog(log_file|log_print, err)
 			goto Point
 		}
 		if err = filterFile(oldfile); err != nil {

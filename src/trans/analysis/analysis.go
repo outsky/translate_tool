@@ -115,7 +115,7 @@ func (a *analysis) GetRule(file string) (
 	file_ex := filev[len(filev)-1]
 	rule, ok := a.extracatRules[file_ex]
 	if !ok {
-		return nil, nil, errors.New(fmt.Sprintf("[file not rule] %s", file))
+		return nil, nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
 	}
 	switch rule {
 	case const_rule_lua:
@@ -125,7 +125,7 @@ func (a *analysis) GetRule(file string) (
 	case const_rule_tablefile:
 		return a.analysis_tab, a.translate_tab, nil
 	default:
-		return nil, nil, errors.New(fmt.Sprintf("[file not rule] %s", file))
+		return nil, nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 func Test_lua(t *testing.T) {
 	ana := analysis.GetInstance()
 	ana.SetFilterFileEx([]string{"lua", "tab", "prefab"})
+	ana.SetRule(map[string]string{"lua": "lua_rules", "prefab": "prefab_rules", "tab": "table_rules"})
 	fanalysis, _, err := ana.GetRule("../test/test.lua")
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +31,6 @@ func Test_lua(t *testing.T) {
 
 func Test_prefab(t *testing.T) {
 	ana := analysis.GetInstance()
-	ana.SetFilterFileEx([]string{"lua", "tab", "prefab"})
 	fanalysis, _, err := ana.GetRule("../test/cn/Boss.prefab")
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +51,6 @@ func Test_prefab(t *testing.T) {
 
 func Test_tab(t *testing.T) {
 	ana := analysis.GetInstance()
-	ana.SetFilterFileEx([]string{"lua", "tab", "prefab"})
 	fanalysis, _, err := ana.GetRule("../test/cn/ScriptItem.tab")
 	if err != nil {
 		t.Fatal(err)
@@ -72,7 +71,6 @@ func Test_tab(t *testing.T) {
 
 func Benchmark_lua(b *testing.B) {
 	ana := analysis.GetInstance()
-	ana.SetFilterFileEx([]string{"lua", "tab", "prefab"})
 	fanalysis, _, err := ana.GetRule("../test/test.lua")
 	if err != nil {
 		b.Fatal(err)
