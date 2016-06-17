@@ -274,17 +274,19 @@ func initConfig() {
 	if err != nil {
 		writeLog(log_file, err)
 		bv = [][]byte{
-			[]byte(";指定提取规则，支持‘lua_rules’，‘prefab_rules’，‘table_rules’"),
+			[]byte(";通过文件扩展名配置提取规则"),
+			[]byte(";支持‘lua_rules’，‘prefab_rules’，‘table_rules’"),
 			[]byte("[rules]"),
 			[]byte("lua=lua_rules"),
 			[]byte("prefab=prefab_rules"),
 			[]byte("tab=table_rules"),
-			[]byte(";指定读写编码，支持utf8，gbk，hz-gb2312，gb18030，big5"),
+			[]byte(";根据文件扩展名设置文件读取编码"),
+			[]byte(";支持utf8，gbk，hz-gb2312，gb18030，big5"),
 			[]byte("[encode]"),
 			[]byte("lua=utf8"),
 			[]byte("prefab=utf8"),
 			[]byte("tab=gbk"),
-			[]byte(";指定扩展名为路径，为了过滤不需要翻译的路径"),
+			[]byte(";根据文件扩展名判断是否是不翻译需要过滤的路径"),
 			[]byte("[filter]"),
 			[]byte("extension=lua,prefab,tab"),
 		}
