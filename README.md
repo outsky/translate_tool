@@ -10,17 +10,20 @@ How to use
 
 Build after install MinGW and Set GOPATH=Current catalog
     
-Extract chinese character string(support lua, prefab and tab file)
+Extract chinese character string, then generate "chinese.txt"(support lua, prefab and tab file)
  
-    ./trans getstring path
+    trans getstring path
 	
-Use artificial translated documents(trans.txt), update to dictionary
+Use artificial translated documents(trans.txt), update to "dictionary.db"
  
-    ./trans update chinese.txt trans.txt
+    trans update chinese.txt trans.txt
 	
-Translate all file or folder(num is goroutine amount, default is 1)
+Translate all documents in the "srcdir". If the "desdir" does not exist will be created automatically
  
-    ./trans translate srcdir desdir [num]
+    trans translate srcdir desdir
+	
+The first time you run the program trans, Automatically generate "config.ini" and "ignore.conf" file
+you can modify these files according to your requirements
 
 License
 -------------
