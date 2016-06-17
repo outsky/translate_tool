@@ -272,7 +272,7 @@ The commands are:
 	translate	translate file or folder.
 			e.g. trans translate src_path des_path
 	
-Remark: Supports .lua, .prefab, .tab file`)
+Remark: Supports lua Script, Unity prefab, table file`)
 }
 
 func initConfig() {
