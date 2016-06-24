@@ -2,80 +2,73 @@ package dic
 
 import (
 	"bytes"
-	"database/sql"
-
-	_ "github.com/mattn/go-sqlite3"
-)
-
-const (
-	sql_create string = `create table if not exists dic (cn bold not null primary key, trans bold not null);`
-	sql_insert string = `insert into dic(trans, cn) values(?, ?)`
-	sql_update string = `update dic set trans = ? where cn = ?`
-	sql_query  string = `select trans from dic where cn = ?`
+	"fmt"
+	"trans/filetool"
+	"trans/log"
 )
 
 type dic struct {
-	db *sql.DB
+	name  string
+	line  [][]byte
+	trans map[string]string
 }
 
-func New(name string) *dic {
-	ins := &dic{}
-	db, err := sql.Open("sqlite3", name)
-	if err != nil {
-		panic(err)
+func New(file string) *dic {
+	ins := &dic{
+		name:  file,
+		trans: make(map[string]string),
 	}
-	_, err = db.Exec(sql_create)
+	ft := filetool.GetInstance()
+	oldEncode, _ := ft.SetEncoding(file, "utf8")
+	defer ft.SetEncoding(file, oldEncode)
+	var err error
+	ins.line, err = ft.ReadFileLine(file)
 	if err != nil {
-		panic(err)
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+		return ins
 	}
-	ins.db = db
+	for i := 0; i < len(ins.line); i++ {
+		v := ins.line[i]
+		linev := bytes.Split(v, []byte{0x09})
+		if len(linev) != 4 {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic abnormal] %s", v))
+			continue
+		}
+		key := string(linev[2])
+		if _, ok := ins.trans[key]; ok {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic repeat] %s", key))
+			continue
+		}
+		value := string(linev[3])
+		ins.trans[key] = value
+	}
 	return ins
 }
 
-func (d *dic) Close() {
-	if d.db != nil {
-		if err := d.db.Close(); err != nil {
-			panic(err)
-		}
-		d.db = nil
-	}
+func (d *dic) Query(text []byte) ([]byte, bool) {
+	stext := string(text)
+	strans, ok := d.trans[stext]
+	return []byte(strans), ok
 }
 
-func (d *dic) Insert(cn, trans []byte) error {
-	sql := sql_insert
-	ret, err := d.Query(cn)
-	if err == nil {
-		if bytes.Compare(ret, trans) == 0 {
-			return nil
-		}
-		sql = sql_update
+func (d *dic) Append(path string, text []byte, trans []byte) bool {
+	stext := string(text)
+	strans := string(trans)
+	if _, ok := d.trans[stext]; ok {
+		return false
 	}
-	tx, err := d.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare(sql)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-	_, err = stmt.Exec(trans, cn)
-	if err != nil {
-		return err
-	}
-	return tx.Commit()
+	d.trans[stext] = strans
+	line := []byte(fmt.Sprintf("%d\t%s\t%s\t%s", len(d.line)+1, path, stext, strans))
+	d.line = append(d.line, line)
+	return true
 }
 
-func (d *dic) Query(text []byte) ([]byte, error) {
-	var trans []byte
-	stmt, err := d.db.Prepare(sql_query)
+func (d *dic) Save() {
+	ft := filetool.GetInstance()
+	oldEncode, _ := ft.SetEncoding(d.name, "utf8")
+	defer ft.SetEncoding(d.name, oldEncode)
+	err := ft.SaveFileLine(d.name, d.line)
 	if err != nil {
-		return trans, err
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
 	}
-	defer stmt.Close()
-	err = stmt.QueryRow(text).Scan(&trans)
-	if err != nil {
-		return trans, err
-	}
-	return trans, nil
 }

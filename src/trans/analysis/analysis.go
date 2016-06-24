@@ -4,39 +4,27 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strconv"
+	"path"
 	"strings"
 	"sync"
+	"trans/analysis/lua"
+	"trans/analysis/prefab"
+	"trans/analysis/tabfile"
+	"trans/dic"
+	"trans/filetool"
+	"trans/gpool"
+	"trans/log"
 )
 
-type analysis struct {
-	filterRules   map[int]func([]byte) bool // 文字提取过滤规则
-	fileExtension []string                  // 过滤指定扩展名的文件路径
-	extracatRules map[string]string         // 扩展名到提取规则的映射
+type delegate interface {
+	GetString(text []byte) ([][]byte, []int, []int, error)
+	Pretreat(trans []byte) []byte
 }
 
-var (
-	ap byte = 0x27 //单引号'
-	dq byte = 0x22 //双引号"
-	sl byte = 0x5c //转义斜杠\\
-	bs byte = 0x2d //横杠-
-	bl byte = 0x5b //左中括号[
-	br byte = 0x5d //右中括号]
-	cr byte = 0x0d //回车CR
-	lf byte = 0x0a //换行LF
-	eq byte = 0x3d //等于号=
-	tb byte = 0x09 //tab制表符
-	uu byte = 0x75 //u字符
-)
-
-const (
-	state_normal          = iota //正常状态
-	state_note_line              //注释一行
-	state_note_section           //注释段落
-	state_apostrophe             //'单引号'字符串
-	state_double_quotes          //"双引号"字符串
-	state_double_brackets        //[[中括号]]字符串
-)
+type analysis struct {
+	rulesMap  map[string]string
+	filterMap map[string]bool
+}
 
 const (
 	const_rule_lua       = "lua_rules"
@@ -50,299 +38,194 @@ var once sync.Once
 func GetInstance() *analysis {
 	once.Do(func() {
 		instance = &analysis{
-			filterRules:   make(map[int]func([]byte) bool),
-			fileExtension: make([]string, 0),
-			extracatRules: make(map[string]string),
+			rulesMap:  make(map[string]string),
+			filterMap: make(map[string]bool),
 		}
-		instance.filterRules[1] = instance.ischinese
-		instance.filterRules[2] = instance.isnotpath
 	})
 	return instance
 }
 
-func (a *analysis) uc2hanzi(uc string) (string, error) {
-	val2int, err := strconv.ParseInt(uc, 16, 32)
-	if err != nil {
-		return uc, err
-	}
-	return fmt.Sprintf("%c", val2int), nil
+func (a *analysis) SetRulesMap(k, v string) {
+	a.rulesMap[path.Ext(k)] = v
 }
 
-func (a *analysis) ischinese(text []byte) bool {
-	for i := 0; i < len(text); i++ {
-		if text[i]&0x80 != 0 {
-			return true
-		}
-	}
-	return false
+func (a *analysis) SetFilterMap(key string) {
+	a.filterMap[key] = true
 }
 
-func (a *analysis) isnotpath(text []byte) bool {
-	path := string(text)
-	filev := strings.Split(path, ".")
-	if len(filev) == 2 {
-		for _, v := range a.fileExtension {
-			if strings.EqualFold(filev[1], v) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func (a *analysis) filter(text []byte) bool {
-	for i := 1; i <= len(a.filterRules); i++ {
-		if !a.filterRules[i](text) {
-			return false
-		}
-	}
-	return true
-}
-
-func (a *analysis) SetFilterFileEx(fileex []string) {
-	a.fileExtension = fileex
-}
-
-func (a *analysis) SetRule(rules map[string]string) {
-	a.extracatRules = rules
-}
-
-func (a *analysis) GetRule(file string) (
-	func([]byte) ([][]byte, error),
-	func(*[]byte, []byte, []byte) error,
-	error) {
-	filev := strings.Split(file, ".")
-	file_ex := filev[len(filev)-1]
-	rule, ok := a.extracatRules[file_ex]
+func (a *analysis) getPool(file string) (delegate, error) {
+	file_ex := path.Ext(file)
+	rule, ok := a.rulesMap[file_ex]
 	if !ok {
-		return nil, nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
+		return nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
 	}
 	switch rule {
 	case const_rule_lua:
-		return a.analysis_lua, a.translate_lua, nil
+		return lua.New(), nil
 	case const_rule_prefab:
-		return a.analysis_prefab, a.translate_prefab, nil
+		return prefab.New(), nil
 	case const_rule_tablefile:
-		return a.analysis_tab, a.translate_tab, nil
+		return tabfile.New(), nil
 	default:
-		return nil, nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
+		return nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
 	}
 }
 
-func (a *analysis) analysis_lua(text []byte) ([][]byte, error) {
-	var cnEntry [][]byte
-	frecord := func(start, end int) {
-		slice := text[start : end+1]
-		if a.filter(slice) {
-			cnEntry = append(cnEntry, slice)
+func (a *analysis) filter(name string) error {
+	namev := strings.Split(name, "/")
+	for _, filename := range namev {
+		if _, ok := a.filterMap[filename]; ok {
+			return errors.New(fmt.Sprintf("[ingnore file] %s", name))
 		}
 	}
-	nState := state_normal
-	nStateStart := 0
-	nSize := len(text)
-	for i := 0; i < nSize; i++ {
-		if i+1 < nSize && text[i] == sl &&
-			(text[i+1] == ap || text[i+1] == dq || text[i+1] == sl) {
-			i++
+	return nil
+}
+
+func (a *analysis) GetString(dbname, root string) {
+	root = strings.TrimRight(strings.Replace(root, "\\", "/", -1), "/")
+	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("extract chinese from %s", root))
+	ft := filetool.GetInstance()
+	fmap, err := ft.GetFilesMap(root)
+	if err != nil {
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		return
+	}
+	newcount := 0
+	db := dic.New(dbname)
+	for i := 0; i < len(fmap); i++ {
+		if err := a.filter(fmap[i]); err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
 			continue
 		}
-		switch nState {
-		case state_normal:
-			switch text[i] {
-			case bs:
-				if i+1 < nSize && text[i+1] == bs {
-					if i+3 < nSize && text[i+2] == bl {
-						nPos := i + 3
-						for nPos < nSize && text[nPos] == eq {
-							if text[nPos] == cr || text[nPos] == lf {
-								break
-							}
-							nPos++
-						}
-						if text[nPos] == bl {
-							i += (nPos - i)
-							nState = state_note_section
-						} else {
-							i += 1
-							nState = state_note_line
-						}
-					} else {
-						i += 1
-						nState = state_note_line
-					}
-				}
-			case ap:
-				nStateStart = i + 1
-				nState = state_apostrophe
-			case dq:
-				nStateStart = i + 1
-				nState = state_double_quotes
-			case bl:
-				if i+1 < nSize && text[i+1] == bl {
-					nStateStart = i + 2
-					nState = state_double_brackets
-					i += 1
-				}
-			}
-		case state_note_line:
-			if i+1 < nSize && text[i] == cr && text[i] == lf {
-				i += 1
-				nState = state_normal
-			} else if text[i] == cr || text[i] == lf {
-				nState = state_normal
-			}
-		case state_note_section:
-			if text[i] == br {
-				nPos := i + 1
-				for nPos < nSize && text[nPos] == eq {
-					if text[nPos] == cr || text[i] == lf {
-						break
-					}
-					nPos++
-				}
-				if text[nPos] == br {
-					i += (nPos - i)
-					nState = state_normal
-				}
-			}
-		case state_apostrophe:
-			if i+1 < nSize && text[i] == cr && text[i] == lf {
-				frecord(nStateStart, i-1)
-				i += 1
-				nStateStart = i + 1
-			} else if text[i] == cr || text[i] == lf {
-				frecord(nStateStart, i-1)
-				nStateStart = i + 1
-			} else if text[i] == ap {
-				frecord(nStateStart, i-1)
-				nState = state_normal
-			}
-		case state_double_quotes:
-			if i+1 < nSize && text[i] == cr && text[i] == lf {
-				frecord(nStateStart, i-1)
-				i += 1
-				nStateStart = i + 1
-			} else if text[i] == cr || text[i] == lf {
-				frecord(nStateStart, i-1)
-				nStateStart = i + 1
-			} else if text[i] == dq {
-				frecord(nStateStart, i-1)
-				nState = state_normal
-			}
-		case state_double_brackets:
-			if i+1 < nSize && text[i] == cr && text[i] == lf {
-				frecord(nStateStart, i-1)
-				i += 1
-				nStateStart = i + 1
-			} else if text[i] == cr || text[i] == lf {
-				frecord(nStateStart, i-1)
-				nStateStart = i + 1
-			} else if text[i] == br {
-				if i+1 < nSize && text[i+1] == br {
-					frecord(nStateStart, i-1)
-					i += 1
-					nState = state_normal
-				}
+		ins, err := a.getPool(fmap[i])
+		if err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			continue
+		}
+		context, err := ft.ReadAll(fmap[i])
+		if err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			continue
+		}
+		entry, _, _, err := ins.GetString(context)
+		if err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		}
+		relaticepath := strings.TrimLeft(strings.Split(fmap[i], root)[1], "/")
+		if len(relaticepath) == 0 {
+			relaticepath = path.Base(fmap[i])
+		}
+		for _, v := range entry {
+			if _, ok := db.Query(v); !ok {
+				db.Append(relaticepath, v, []byte(""))
+				newcount += 1
 			}
 		}
 	}
-	if nState != state_normal && nState != state_note_line {
-		return cnEntry, errors.New(fmt.Sprintf("%s state:%d", "file syntax error", nState))
+	if newcount > 0 {
+		db.Save()
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
+			fmt.Sprintf("generate %s, new line number: %d. finished!", dbname, newcount))
+	} else {
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
+			fmt.Sprintf("nothing to do. finished!"))
 	}
-	return cnEntry, nil
 }
 
-func (a *analysis) translate_lua(context *[]byte, sText []byte, trans []byte) error {
-	*context = bytes.Replace(*context, sText, trans, 1)
-	return nil
-}
-
-func (a *analysis) analysis_prefab(text []byte) ([][]byte, error) {
-	var cnEntry [][]byte
-	tag := fmt.Sprintf("%c%c", sl, uu)
-	frecord := func(start, end int) {
-		unicode := string(text[start : end+1])
-		index := strings.Index(unicode, tag)
-		for ; index != -1; index = strings.Index(unicode, tag) {
-			hanzi, err := a.uc2hanzi(unicode[index+2 : index+6])
-			if err != nil {
-				panic(err)
-			}
-			unicode = strings.Replace(unicode, unicode[index:index+6], hanzi, 1)
+func (a *analysis) Translate(dbname, root, output string, queue int) {
+	root = strings.TrimRight(strings.Replace(root, "\\", "/", -1), "/")
+	output = strings.TrimRight(strings.Replace(output, "\\", "/", -1), "/")
+	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("translate %s to %s", root, output))
+	ft := filetool.GetInstance()
+	fmap, err := ft.GetFilesMap(root)
+	if err != nil {
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		return
+	}
+	db := dic.New(dbname)
+	tatal, transcount, newcount := 0, 0, 0
+	pool := gpool.New(queue)
+	mutex := &sync.Mutex{}
+	fwork := func(oldfile, newfile, relative string) {
+		defer pool.Done()
+		var (
+			entry   [][]byte
+			start   []int
+			end     []int
+			context [][]byte
+			nStart  int
+			nSize   int
+		)
+		bv, err := ft.ReadAll(oldfile)
+		if err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+			return
 		}
-		cnEntry = append(cnEntry, []byte(unicode))
-	}
-	nState := state_normal
-	nStateStart := 0
-	nSize := len(text)
-	for i := 0; i < nSize; i++ {
-		switch nState {
-		case state_normal:
-			switch text[i] {
-			case dq:
-				nStateStart = i + 1
-				nState = state_double_quotes
-			}
-		case state_double_quotes:
-			if text[i] == dq {
-				frecord(nStateStart, i-1)
-				nState = state_normal
-			}
+		ins, err := a.getPool(oldfile)
+		if err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			goto Point
 		}
-	}
-	if nState != state_normal {
-		return cnEntry, errors.New(fmt.Sprintf("%s state:%d", "file syntax error", nState))
-	}
-	return cnEntry, nil
-}
-
-func (a *analysis) translate_prefab(context *[]byte, sText []byte, trans []byte) error {
-	prefabformat := func(s string) string {
-		length := len(s)
-		for i := 0; i+5 < length; i++ {
-			if s[i] == sl && s[i+1] == uu {
-				upper := strings.ToUpper(s[i+2 : i+6])
-				s = strings.Replace(s, s[i+2:i+6], upper, 1)
-			}
+		if err = a.filter(oldfile); err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			goto Point
 		}
-		return s
-	}
-	textQuoted := strconv.QuoteToASCII(string(sText))
-	textUnquoted := prefabformat(textQuoted[1 : len(textQuoted)-1])
-	textUnquoted = strings.Replace(textUnquoted, "\\\\", "\\", -1)
-	transQuoted := strconv.QuoteToASCII(string(trans))
-	transUnquoted := prefabformat(transQuoted[1 : len(transQuoted)-1])
-	transUnquoted = strings.Replace(transUnquoted, "\\\\", "\\", -1)
-	*context = bytes.Replace(*context, []byte(textUnquoted), []byte(transUnquoted), 1)
-	return nil
-}
-
-func (a *analysis) analysis_tab(text []byte) ([][]byte, error) {
-	var cnEntry [][]byte
-	frecord := func(nStart, nEnd int) {
-		textv := bytes.Split(text[nStart:nEnd], []byte{tb})
-		for _, v := range textv {
-			v = bytes.TrimSpace(v)
-			if a.filter(v) {
-				cnEntry = append(cnEntry, v)
+		entry, start, end, err = ins.GetString(bv)
+		if err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+			goto Point
+		}
+		nStart = 0
+		nSize = len(bv)
+		for i := 0; i < len(entry); i++ {
+			context = append(context, bv[nStart:start[i]])
+			nStart = end[i]
+			if trans, ok := db.Query(entry[i]); ok {
+				if len(trans) > 0 {
+					context = append(context, ins.Pretreat(trans))
+				} else {
+					context = append(context, bv[start[i]:end[i]])
+					mutex.Lock()
+					db.Append(relative, entry[i], []byte(""))
+					newcount += 1
+					mutex.Unlock()
+				}
+			} else {
+				context = append(context, bv[start[i]:end[i]])
+				mutex.Lock()
+				db.Append(relative, entry[i], []byte(""))
+				newcount += 1
+				mutex.Unlock()
 			}
 		}
-	}
-	nStart := 0
-	length := len(text)
-	for i := 0; i < length; i++ {
-		if i+1 < length && text[i] == cr && text[i] == lf {
-			frecord(nStart, i)
-			nStart = i + 2
-		} else if text[i] == cr || text[i] == lf {
-			frecord(nStart, i)
-			nStart = i + 1
+		if nStart < nSize {
+			context = append(context, bv[nStart:nSize])
+		}
+		transcount += 1
+	Point:
+		tatal += 1
+		if len(context) > 0 {
+			ft.WriteAll(newfile, bytes.Join(context, []byte("")))
+		} else {
+			ft.WriteAll(newfile, bv)
 		}
 	}
-	return cnEntry, nil
-}
-
-func (a *analysis) translate_tab(context *[]byte, sText []byte, trans []byte) error {
-	*context = bytes.Replace(*context, sText, trans, 1)
-	return nil
+	for i := 0; i < len(fmap); i++ {
+		pool.Add(1)
+		fpath := strings.Replace(fmap[i], root, output, 1)
+		frelative := strings.TrimLeft(strings.Split(fmap[i], root)[1], "/")
+		if len(frelative) == 0 {
+			frelative = path.Base(fmap[i])
+		}
+		go fwork(fmap[i], fpath, frelative)
+	}
+	pool.Wait()
+	if newcount > 0 {
+		db.Save()
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
+			fmt.Sprintf("generate %s, new line number: %d.", dbname, newcount))
+	}
+	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
+		fmt.Sprintf("translate file %d, copy file %d. finished!", transcount, tatal-transcount))
+	return
 }
