@@ -30,19 +30,26 @@ func New(file string) *dic {
 	for i := 0; i < len(ins.line); i++ {
 		v := ins.line[i]
 		linev := bytes.Split(v, []byte{0x09})
-		if len(linev) != 2 {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic abnormal] line:%d, data:%s", i+1, v))
+		if len(linev) != 2 || len(linev[0]) == 0 || len(linev[1]) == 0 {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic abnormal] file:%s, line:%d, data:%s", file, i+1, v))
 			continue
 		}
 		key := string(linev[0])
 		if _, ok := ins.trans[key]; ok {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic repeat] line:%d, data:%s", i+1, key))
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic repeat] file:%s, line:%d, data:%s", file, i+1, key))
 			continue
 		}
 		value := string(linev[1])
 		ins.trans[key] = value
 	}
 	return ins
+}
+
+func NewOnly(file string) *dic {
+	return &dic{
+		name:  file,
+		trans: make(map[string]string),
+	}
 }
 
 func (d *dic) Query(text []byte) ([]byte, bool) {
@@ -63,18 +70,16 @@ func (d *dic) Append(text []byte, trans []byte) bool {
 	return true
 }
 
-func (d *dic) Merge(target *dic) (int, int) {
+func (d *dic) Merge(target *dic) int {
 	succ := 0
-	fail := 0
 	for k, v := range d.trans {
 		if len(k) > 0 && len(v) > 0 {
-			target.Append([]byte(k), []byte(v))
-			succ += 1
-		} else {
-			fail += 1
+			if target.Append([]byte(k), []byte(v)) {
+				succ += 1
+			}
 		}
 	}
-	return succ, fail
+	return succ
 }
 
 func (d *dic) Save() {

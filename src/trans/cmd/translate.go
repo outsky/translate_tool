@@ -34,6 +34,10 @@ var translateCmd = &cobra.Command{
 	Long:  `Translation using dictionary file or directory. If the output does not exist will be created automatically`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
+		if len(translate_srcpath) == 0 || len(translate_output) == 0 {
+			cmd.Help()
+			return
+		}
 		analysis.GetInstance().Translate(
 			path.Clean(translate_dbname),
 			path.Clean(translate_update_data),

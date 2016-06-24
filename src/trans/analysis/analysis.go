@@ -81,7 +81,7 @@ func (a *analysis) filter(name string) error {
 	return nil
 }
 
-func (a *analysis) GetString(dbname, root string) {
+func (a *analysis) GetString(dbname, update, root string) {
 	root = strings.TrimRight(strings.Replace(root, "\\", "/", -1), "/")
 	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("extract chinese from %s", root))
 	ft := filetool.GetInstance()
@@ -92,6 +92,7 @@ func (a *analysis) GetString(dbname, root string) {
 	}
 	newcount := 0
 	db := dic.New(dbname)
+	notrans := dic.NewOnly(update)
 	for i := 0; i < len(fmap); i++ {
 		if err := a.filter(fmap[i]); err != nil {
 			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
@@ -113,15 +114,15 @@ func (a *analysis) GetString(dbname, root string) {
 		}
 		for _, v := range entry {
 			if _, ok := db.Query(v); !ok {
-				db.Append(v, []byte(""))
+				notrans.Append(v, []byte(""))
 				newcount += 1
 			}
 		}
 	}
 	if newcount > 0 {
-		db.Save()
+		notrans.Save()
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-			fmt.Sprintf("generate %s, new line number: %d. finished!", dbname, newcount))
+			fmt.Sprintf("generate %s, new line number: %d. finished!", update, newcount))
 	} else {
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
 			fmt.Sprintf("nothing to do. finished!"))
@@ -138,8 +139,8 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
 		return
 	}
-	db := dic.New(dbname)
-	notrans := dic.New(update)
+	dbdata := dic.New(dbname)
+	notrans := dic.NewOnly(update)
 	tatal, transcount, newcount := 0, 0, 0
 	pool := gpool.New(queue)
 	mutex := &sync.Mutex{}
@@ -177,7 +178,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 		for i := 0; i < len(entry); i++ {
 			context = append(context, bv[nStart:start[i]])
 			nStart = end[i]
-			if trans, ok := db.Query(entry[i]); ok {
+			if trans, ok := dbdata.Query(entry[i]); ok {
 				if len(trans) > 0 {
 					context = append(context, ins.Pretreat(trans))
 				} else {
@@ -213,13 +214,14 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 	for i := 0; i < len(fmap); i++ {
 		pool.Add(1)
 		fpath := strings.Replace(fmap[i], root, output, 1)
+		println(fmap[i], fpath)
 		go fwork(fmap[i], fpath)
 	}
 	pool.Wait()
 	if newcount > 0 {
 		notrans.Save()
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-			fmt.Sprintf("generate %s, new line number: %d.", dbname, newcount))
+			fmt.Sprintf("generate %s, new line number: %d.", update, newcount))
 	}
 	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
 		fmt.Sprintf("translate file %d, copy file %d. finished!", transcount, tatal-transcount))
@@ -228,13 +230,13 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 
 func (a *analysis) Update(dbname, update string) {
 	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("update %s to %s", update, dbname))
-	db := dic.New(dbname)
-	newdb := dic.New(update)
-	succ, fail := newdb.Merge(db)
+	dbdata := dic.New(dbname)
+	trans := dic.New(update)
+	succ := trans.Merge(dbdata)
 	if succ > 0 {
-		db.Save()
+		dbdata.Save()
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-			fmt.Sprintf("update line number: %d/%d. finished!", succ, succ+fail))
+			fmt.Sprintf("update line number: %d. finished!", succ))
 	} else {
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, "nothing to do. finished!")
 	}

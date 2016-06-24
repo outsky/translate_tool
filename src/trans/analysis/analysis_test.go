@@ -20,7 +20,7 @@ func Test_GetString(t *testing.T) {
 	anal.SetRulesMap(".txt", "table_rules")
 	anal.SetFilterMap("filter")
 	anal.SetFilterMap("filter.lua")
-	anal.GetString("../test/temp/dictionary.txt", "../test/cn/")
+	anal.GetString("../test/temp/dictionary.txt", "../test/temp/chinese.txt", "../test/cn/")
 }
 
 func Test_Translate(t *testing.T) {
@@ -37,5 +37,5 @@ func Test_Translate(t *testing.T) {
 	anal.SetRulesMap(".txt", "table_rules")
 	anal.SetFilterMap("filter")
 	anal.SetFilterMap("filter.lua")
-	anal.Translate("../test/temp/dictionary.txt", "../test/cn/", "../test/temp/trans/", 1)
+	anal.Translate("../test/temp/dictionary.txt", "../test/temp/chinese.txt", "../test/cn/", "../test/temp/trans/", 1)
 }
