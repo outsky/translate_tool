@@ -11,25 +11,26 @@ How to use
 Build after Set GOPATH=Current catalog
 
 Trans is a text translate tool that can help you to extract all chinese from
-file or directory. it can analyzes lua script, unity prefab and table file. If there is
-more demand, you can easily add more file support. The first time you run the program
-trans, Automatically generate "config.ini" and "ignore.conf" file .you can modify these
-files according to your requirements
-
+file or directory. it can analyzes lua script, unity prefab and table file.
+If there is more demand, you can easily add more file support. The first time
+you run the programtrans, Automatically generate "config.ini" and "ignore.conf"
+file. you can modify these files according to your requirements
 ```
 Usage:
-    trans [command]
+  trans [command]
 
 Available Commands:
-    getstring   Extract chinese characters
-    translate   Translation file or directory
-    version     View version
+  getstring   Extract chinese characters
+  translate   Translation file or directory
+  update      Update translation to dictionary
+  version     View version
 
 Flags:
-      -h, --help   help for trans
+  -h, --help   help for trans
 
 Use "trans [command] --help" for more information about a command.
 ```
+
 SubCommand:
 
 getstring:
@@ -42,6 +43,18 @@ Flags:
     -d, --db string    File to save the extracted results (default "dictionary.txt")
     -s, --src string   The extracted file or directory path
 ```
+
+update:
+	Update translation to dictionary
+```
+Usage:
+  trans update [flags]
+
+Flags:
+  -d, --db string       Translation data dictionary (default "dictionary.txt")
+  -u, --update string   The new translation data (default "chinese.txt")
+```
+
 translate:
 	Translation using dictionary file or directory. If the output does not exist will be created automatically
 ```
@@ -54,6 +67,7 @@ translate:
     -r, --routine int     Goroutine number. This is a test parameters (default 1)
     -s, --src string      Translated file or directory path
 ```
+
 License
 -------------
 

@@ -15,33 +15,38 @@
 package cmd
 
 import (
-	"fmt"
+	"path"
+	"trans/analysis"
 
 	"github.com/spf13/cobra"
 )
 
-// versionCmd represents the version command
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "View version",
-	Long:  `View current application's version`,
+var update_dbname string
+var update_data string
+
+// updateCmd represents the update command
+var updateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "Update translation to dictionary",
+	Long:  `Update translation to dictionary`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
-		fmt.Println("trans version 0.0.3")
+		analysis.GetInstance().Update(path.Clean(update_dbname), path.Clean(update_data))
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(versionCmd)
+	RootCmd.AddCommand(updateCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// versionCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// updateCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// versionCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
+	// updateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	updateCmd.Flags().StringVarP(&update_dbname, "db", "d", "dictionary.txt", "Translation data dictionary")
+	updateCmd.Flags().StringVarP(&update_data, "update", "u", "chinese.txt", "The new translation data")
 }

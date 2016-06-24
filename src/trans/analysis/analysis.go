@@ -111,13 +111,9 @@ func (a *analysis) GetString(dbname, root string) {
 		if err != nil {
 			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
 		}
-		relaticepath := strings.TrimLeft(strings.Split(fmap[i], root)[1], "/")
-		if len(relaticepath) == 0 {
-			relaticepath = path.Base(fmap[i])
-		}
 		for _, v := range entry {
 			if _, ok := db.Query(v); !ok {
-				db.Append(relaticepath, v, []byte(""))
+				db.Append(v, []byte(""))
 				newcount += 1
 			}
 		}
@@ -132,7 +128,7 @@ func (a *analysis) GetString(dbname, root string) {
 	}
 }
 
-func (a *analysis) Translate(dbname, root, output string, queue int) {
+func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 	root = strings.TrimRight(strings.Replace(root, "\\", "/", -1), "/")
 	output = strings.TrimRight(strings.Replace(output, "\\", "/", -1), "/")
 	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("translate %s to %s", root, output))
@@ -143,10 +139,11 @@ func (a *analysis) Translate(dbname, root, output string, queue int) {
 		return
 	}
 	db := dic.New(dbname)
+	notrans := dic.New(update)
 	tatal, transcount, newcount := 0, 0, 0
 	pool := gpool.New(queue)
 	mutex := &sync.Mutex{}
-	fwork := func(oldfile, newfile, relative string) {
+	fwork := func(oldfile, newfile string) {
 		defer pool.Done()
 		var (
 			entry   [][]byte
@@ -186,14 +183,17 @@ func (a *analysis) Translate(dbname, root, output string, queue int) {
 				} else {
 					context = append(context, bv[start[i]:end[i]])
 					mutex.Lock()
-					db.Append(relative, entry[i], []byte(""))
-					newcount += 1
+					if notrans.Append(entry[i], []byte("")) {
+						newcount += 1
+					}
 					mutex.Unlock()
 				}
 			} else {
 				context = append(context, bv[start[i]:end[i]])
 				mutex.Lock()
-				db.Append(relative, entry[i], []byte(""))
+				if notrans.Append(entry[i], []byte("")) {
+					newcount += 1
+				}
 				newcount += 1
 				mutex.Unlock()
 			}
@@ -213,19 +213,29 @@ func (a *analysis) Translate(dbname, root, output string, queue int) {
 	for i := 0; i < len(fmap); i++ {
 		pool.Add(1)
 		fpath := strings.Replace(fmap[i], root, output, 1)
-		frelative := strings.TrimLeft(strings.Split(fmap[i], root)[1], "/")
-		if len(frelative) == 0 {
-			frelative = path.Base(fmap[i])
-		}
-		go fwork(fmap[i], fpath, frelative)
+		go fwork(fmap[i], fpath)
 	}
 	pool.Wait()
 	if newcount > 0 {
-		db.Save()
+		notrans.Save()
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
 			fmt.Sprintf("generate %s, new line number: %d.", dbname, newcount))
 	}
 	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
 		fmt.Sprintf("translate file %d, copy file %d. finished!", transcount, tatal-transcount))
 	return
+}
+
+func (a *analysis) Update(dbname, update string) {
+	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("update %s to %s", update, dbname))
+	db := dic.New(dbname)
+	newdb := dic.New(update)
+	succ, fail := newdb.Merge(db)
+	if succ > 0 {
+		db.Save()
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
+			fmt.Sprintf("update line number: %d/%d. finished!", succ, succ+fail))
+	} else {
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, "nothing to do. finished!")
+	}
 }

@@ -47,6 +47,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// getstringCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	getstringCmd.Flags().StringVarP(&getstring_dbname, "db", "d", "dictionary.txt", "File to save the extracted results")
+	getstringCmd.Flags().StringVarP(&getstring_dbname, "db", "d", "dictionary.txt", "Translation data dictionary")
 	getstringCmd.Flags().StringVarP(&getstring_srcpath, "src", "s", "", "The extracted file or directory path")
 }

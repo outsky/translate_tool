@@ -30,16 +30,16 @@ func New(file string) *dic {
 	for i := 0; i < len(ins.line); i++ {
 		v := ins.line[i]
 		linev := bytes.Split(v, []byte{0x09})
-		if len(linev) != 4 {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic abnormal] %s", v))
+		if len(linev) != 2 {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic abnormal] line:%d, data:%s", i+1, v))
 			continue
 		}
-		key := string(linev[2])
+		key := string(linev[0])
 		if _, ok := ins.trans[key]; ok {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic repeat] %s", key))
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic repeat] line:%d, data:%s", i+1, key))
 			continue
 		}
-		value := string(linev[3])
+		value := string(linev[1])
 		ins.trans[key] = value
 	}
 	return ins
@@ -51,16 +51,30 @@ func (d *dic) Query(text []byte) ([]byte, bool) {
 	return []byte(strans), ok
 }
 
-func (d *dic) Append(path string, text []byte, trans []byte) bool {
+func (d *dic) Append(text []byte, trans []byte) bool {
 	stext := string(text)
 	strans := string(trans)
 	if _, ok := d.trans[stext]; ok {
 		return false
 	}
 	d.trans[stext] = strans
-	line := []byte(fmt.Sprintf("%d\t%s\t%s\t%s", len(d.line)+1, path, stext, strans))
+	line := []byte(fmt.Sprintf("%s\t%s", stext, strans))
 	d.line = append(d.line, line)
 	return true
+}
+
+func (d *dic) Merge(target *dic) (int, int) {
+	succ := 0
+	fail := 0
+	for k, v := range d.trans {
+		if len(k) > 0 && len(v) > 0 {
+			target.Append([]byte(k), []byte(v))
+			succ += 1
+		} else {
+			fail += 1
+		}
+	}
+	return succ, fail
 }
 
 func (d *dic) Save() {
