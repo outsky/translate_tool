@@ -40,7 +40,7 @@ Usage:
     trans getstring [flags]
 
 Flags:
-    -d, --db string    File to save the extracted results (default "dictionary.txt")
+    -d, --db string    Translation data dictionary (default "dictionary.txt")
     -s, --src string   The extracted file or directory path
 ```
 
@@ -62,7 +62,7 @@ translate:
     trans translate [flags]
 
  Flags:
-    -d, --db string       File to save the extracted results (default "dictionary.txt")
+    -d, --db string       Translation data dictionary (default "dictionary.txt")
     -o, --output string   The output file or directory path translated
     -r, --routine int     Goroutine number. This is a test parameters (default 1)
     -s, --src string      Translated file or directory path

@@ -195,7 +195,6 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 				if notrans.Append(entry[i], []byte("")) {
 					newcount += 1
 				}
-				newcount += 1
 				mutex.Unlock()
 			}
 		}
@@ -214,7 +213,6 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 	for i := 0; i < len(fmap); i++ {
 		pool.Add(1)
 		fpath := strings.Replace(fmap[i], root, output, 1)
-		println(fmap[i], fpath)
 		go fwork(fmap[i], fpath)
 	}
 	pool.Wait()
