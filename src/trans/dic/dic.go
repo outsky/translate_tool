@@ -65,6 +65,7 @@ func (d *dic) Append(text []byte, trans []byte) {
 	stext := string(text)
 	strans := string(trans)
 	if _, ok := d.trans[stext]; ok {
+		d.trans[stext] = strans
 		d.line[d.key2idx[stext]] = []byte(fmt.Sprintf("%s\t%s", stext, strans))
 	} else {
 		d.trans[stext] = strans
