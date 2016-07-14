@@ -114,9 +114,8 @@ func (a *analysis) GetString(dbname, update, root string) {
 		}
 		for _, v := range entry {
 			if _, ok := db.Query(v); !ok {
-				if notrans.Append(v, []byte("")) {
-					newcount += 1
-				}
+				notrans.Append(v, []byte(""))
+				newcount += 1
 			}
 		}
 	}
@@ -185,17 +184,15 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 				} else {
 					context = append(context, bv[start[i]:end[i]])
 					mutex.Lock()
-					if notrans.Append(entry[i], []byte("")) {
-						newcount += 1
-					}
+					notrans.Append(entry[i], []byte(""))
+					newcount += 1
 					mutex.Unlock()
 				}
 			} else {
 				context = append(context, bv[start[i]:end[i]])
 				mutex.Lock()
-				if notrans.Append(entry[i], []byte("")) {
-					newcount += 1
-				}
+				notrans.Append(entry[i], []byte(""))
+				newcount += 1
 				mutex.Unlock()
 			}
 		}
@@ -242,12 +239,16 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 func (a *analysis) Update(dbname, update string) {
 	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("update %s to %s", update, dbname))
 	dbdata := dic.New(dbname)
-	trans := dic.New(update)
-	succ := trans.Merge(dbdata)
-	if succ > 0 {
+	newdata := dic.New(update)
+	text, trans := newdata.GetLine()
+	count := len(text)
+	if count > 0 {
+		for i := 0; i < count; i++ {
+			dbdata.Append(text[i], trans[i])
+		}
 		dbdata.Save()
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-			fmt.Sprintf("update line number: %d. finished!", succ))
+			fmt.Sprintf("update line number: %d. finished!", count))
 	} else {
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, "nothing to do. finished!")
 	}

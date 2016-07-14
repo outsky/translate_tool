@@ -8,15 +8,17 @@ import (
 )
 
 type dic struct {
-	name  string
-	line  [][]byte
-	trans map[string]string
+	name    string
+	line    [][]byte
+	trans   map[string]string
+	key2idx map[string]int
 }
 
 func New(file string) *dic {
 	ins := &dic{
-		name:  file,
-		trans: make(map[string]string),
+		name:    file,
+		trans:   make(map[string]string),
+		key2idx: make(map[string]int),
 	}
 	ft := filetool.GetInstance()
 	oldEncode, _ := ft.SetEncoding(file, "utf8")
@@ -40,14 +42,16 @@ func New(file string) *dic {
 		}
 		ins.trans[key] = string(linev[1])
 		ins.line = append(ins.line, v)
+		ins.key2idx[key] = len(ins.line) - 1
 	}
 	return ins
 }
 
 func NewOnly(file string) *dic {
 	return &dic{
-		name:  file,
-		trans: make(map[string]string),
+		name:    file,
+		trans:   make(map[string]string),
+		key2idx: make(map[string]int),
 	}
 }
 
@@ -57,28 +61,31 @@ func (d *dic) Query(text []byte) ([]byte, bool) {
 	return []byte(strans), ok
 }
 
-func (d *dic) Append(text []byte, trans []byte) bool {
+func (d *dic) Append(text []byte, trans []byte) {
 	stext := string(text)
 	strans := string(trans)
 	if _, ok := d.trans[stext]; ok {
-		return false
+		d.line[d.key2idx[stext]] = []byte(fmt.Sprintf("%s\t%s", stext, strans))
+	} else {
+		d.trans[stext] = strans
+		d.line = append(d.line, []byte(fmt.Sprintf("%s\t%s", stext, strans)))
+		d.key2idx[stext] = len(d.line) - 1
 	}
-	d.trans[stext] = strans
-	line := []byte(fmt.Sprintf("%s\t%s", stext, strans))
-	d.line = append(d.line, line)
-	return true
 }
 
-func (d *dic) Merge(target *dic) int {
-	succ := 0
-	for k, v := range d.trans {
-		if len(k) > 0 && len(v) > 0 {
-			if target.Append([]byte(k), []byte(v)) {
-				succ += 1
-			}
+func (d *dic) GetLine() ([][]byte, [][]byte) {
+	var text [][]byte
+	var trans [][]byte
+	for i := 0; i < len(d.line); i++ {
+		elem := d.line[i]
+		elemv := bytes.Split(elem, []byte{0x09})
+		if len(elemv) != 2 || len(elemv[0]) == 0 || len(elemv[1]) == 0 {
+			continue
 		}
+		text = append(text, elemv[0])
+		trans = append(trans, elemv[1])
 	}
-	return succ
+	return text, trans
 }
 
 func (d *dic) Save() {
