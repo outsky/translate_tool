@@ -114,8 +114,10 @@ func (a *analysis) GetString(dbname, update, root string) {
 		}
 		for _, v := range entry {
 			if _, ok := db.Query(v); !ok {
-				notrans.Append(v, []byte(""))
-				newcount += 1
+				if _, ok := notrans.Query(v); !ok {
+					notrans.Append(v, []byte(""))
+					newcount += 1
+				}
 			}
 		}
 	}
@@ -184,15 +186,19 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 				} else {
 					context = append(context, bv[start[i]:end[i]])
 					mutex.Lock()
-					notrans.Append(entry[i], []byte(""))
-					newcount += 1
+					if _, ok := notrans.Query(entry[i]); !ok {
+						notrans.Append(entry[i], []byte(""))
+						newcount += 1
+					}
 					mutex.Unlock()
 				}
 			} else {
 				context = append(context, bv[start[i]:end[i]])
 				mutex.Lock()
-				notrans.Append(entry[i], []byte(""))
-				newcount += 1
+				if _, ok := notrans.Query(entry[i]); !ok {
+					notrans.Append(entry[i], []byte(""))
+					newcount += 1
+				}
 				mutex.Unlock()
 			}
 		}
