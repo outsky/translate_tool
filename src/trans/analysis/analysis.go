@@ -143,7 +143,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 	}
 	dbdata := dic.New(dbname)
 	notrans := dic.NewOnly(update)
-	copycount, transcount, newcount := 0, 0, 0
+	copycount, transcount, newcount, ignorecount := 0, 0, 0, 0
 	pool := gpool.New(queue)
 	mutex := &sync.Mutex{}
 	fwork := func(oldfile, newfile string) {
@@ -161,12 +161,13 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
 			return
 		}
+		if err := a.filter(oldfile); err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			ignorecount += 1
+			return
+		}
 		ins, err := a.getPool(oldfile)
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
-			goto Point
-		}
-		if err = a.filter(oldfile); err != nil {
 			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
 			goto Point
 		}
@@ -238,7 +239,8 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 			fmt.Sprintf("generate %s, new line number: %d.", update, newcount))
 	}
 	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-		fmt.Sprintf("translate file %d, copy file %d. finished!", transcount, copycount))
+		fmt.Sprintf("translate file %d, copy file %d, ignore file %d, total %d/%d. finished!",
+			transcount, copycount, ignorecount, transcount+copycount+ignorecount, len(fmap)))
 	return
 }
 
