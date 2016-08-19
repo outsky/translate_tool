@@ -11,8 +11,11 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"trans/log"
 
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/traditionalchinese"
 	"golang.org/x/text/encoding/unicode"
@@ -31,11 +34,15 @@ func GetInstance() *filetool {
 	once.Do(func() {
 		instance = &filetool{
 			encodingmap: map[string]encoding.Encoding{
-				"utf8":      unicode.UTF8,
-				"gbk":       simplifiedchinese.GBK,
-				"hz-gb2312": simplifiedchinese.HZGB2312,
-				"gb18030":   simplifiedchinese.GB18030,
-				"big5":      traditionalchinese.Big5,
+				"utf8":        unicode.UTF8,
+				"gbk":         simplifiedchinese.GBK,
+				"hz-gb2312":   simplifiedchinese.HZGB2312,
+				"gb18030":     simplifiedchinese.GB18030,
+				"big5":        traditionalchinese.Big5,
+				"euc-jp":      japanese.EUCJP,
+				"iso-2022-jp": japanese.ISO2022JP,
+				"shift_jis":   japanese.ShiftJIS,
+				"euc-kr":      korean.EUCKR,
 			},
 			file2coding: make(map[string]string),
 		}
@@ -207,4 +214,65 @@ func (ft *filetool) SaveFileLine(name string, context [][]byte) error {
 		}
 	}
 	return w.Flush()
+}
+
+func (ft *filetool) readAll(name string, encoding encoding.Encoding) ([]byte, error) {
+	context, err := ioutil.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	reader := transform.NewReader(bytes.NewReader(context), encoding.NewDecoder())
+	dcontext, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("%s %s", err.Error(), name))
+	}
+	return dcontext, nil
+}
+
+func (ft *filetool) writeAll(name string, context []byte, encoding encoding.Encoding) error {
+	if index := strings.LastIndex(name, "/"); index != -1 {
+		err := os.MkdirAll(name[:index], os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+	reader := transform.NewReader(bytes.NewReader(context), encoding.NewEncoder())
+	econtext, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return errors.New(fmt.Sprintf("%s %s", err.Error(), name))
+	}
+	return ioutil.WriteFile(name, econtext, os.ModePerm)
+}
+
+func (ft *filetool) Transcoding(input, decoding, output, encoding string) {
+	input = strings.TrimRight(strings.Replace(input, "\\", "/", -1), "/")
+	output = strings.TrimRight(strings.Replace(output, "\\", "/", -1), "/")
+	filemap, err := ft.GetFilesMap(input)
+	if err != nil {
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		return
+	}
+	decode, ok := ft.encodingmap[decoding]
+	if !ok {
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("%s not exsit!", decoding))
+	}
+	encode, ok := ft.encodingmap[encoding]
+	if !ok {
+		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("%s not exsit!", encoding))
+	}
+	count := 0
+	for i := 0; i < len(filemap); i++ {
+		context, err := ft.readAll(filemap[i], decode)
+		if err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			continue
+		}
+		path := strings.Replace(filemap[i], input, output, 1)
+		if err := ft.writeAll(path, context, encode); err != nil {
+			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			continue
+		}
+		count += 1
+	}
+	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("Converts %s to %s, %d/%d file(s), finished.", decoding, encoding, count, len(filemap)))
 }

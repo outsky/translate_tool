@@ -17,6 +17,7 @@ Usage:
 
 Available Commands:
   getstring   Extract chinese characters
+  transcoding file transcoding
   translate   Translation file or directory
   update      Update translation to dictionary
   version     View version
@@ -58,6 +59,21 @@ translate: Translation using dictionary file or directory. If the output does no
     -o, --output string   The output file or directory path translated
     -r, --routine int     Goroutine number. This is a test parameters (default 1)
     -s, --src string      Translated file or directory path
+```
+
+transcoding: file transcoding
+```
+file transcoding Support utf8, gbk, hz-gb2312, gb18030, big5, euc-jp, iso-2022-jp, shift_jis, euc-kr.
+Notice: This tool can only transcoding, and can not be translated.
+
+Usage:
+  trans transcoding [flags]
+
+Flags:
+  -d, --decoding string   encoding of input file
+  -e, --encoding string   encoding of output file
+  -i, --input string      Input file or directory
+  -o, --output string     Output file or directory
 ```
 
 License
