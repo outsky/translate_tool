@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>运营后台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<script type="application/javascript">
+        function localHref(){
+            var href = window.location.href;
+            if(href.indexOf("?")>0){
+                return href.substr(0,href.lastIndexOf("/"))+"/";
+            }else{
+                return href + "?s=/Home/index/";
+            }
+        }
+    </script>
+    <style type="text/css">
+        html,body{
+            height: 99.8%;
+            margin: 0;
+            padding: 0px;
+        }
+        .flash{
+            height: 100%;
+        }
+        .swf{
+            width: 100%;
+            height: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="flash">
+    <embed src="__PUBLIC__/flash/swf/main.swf" class="swf"></embed>
+</div>
+
+
+</body>
+</html>
