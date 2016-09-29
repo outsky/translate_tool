@@ -60,13 +60,13 @@ func initConfig() {
 			switch nType {
 			case 1:
 				kv := strings.Split(s, "=")
-				if len(kv) != 2 {
+				if len(kv) < 2 {
 					panic(fmt.Sprintf("config error: %s", s))
 				}
 				anal.SetRulesMap(strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1]))
 			case 2:
 				kv := strings.Split(s, "=")
-				if len(kv) != 2 {
+				if len(kv) < 2 {
 					panic(fmt.Sprintf("config error: %s", s))
 				}
 				ft.SetEncoding(strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1]))

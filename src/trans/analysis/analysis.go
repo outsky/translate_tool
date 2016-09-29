@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"trans/analysis/common"
 	"trans/analysis/lua"
 	"trans/analysis/prefab"
 	"trans/analysis/tabfile"
@@ -30,6 +31,7 @@ const (
 	const_rule_lua       = "lua_rules"
 	const_rule_prefab    = "prefab_rules"
 	const_rule_tablefile = "table_rules"
+	const_rule_common    = "common_rules"
 )
 
 var instance *analysis
@@ -66,6 +68,8 @@ func (a *analysis) getPool(file string) (delegate, error) {
 		return prefab.New(), nil
 	case const_rule_tablefile:
 		return tabfile.New(), nil
+	case const_rule_common:
+		return common.New(), nil
 	default:
 		return nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
 	}
@@ -91,8 +95,8 @@ func (a *analysis) GetString(dbname, update, root string) {
 		return
 	}
 	newcount := 0
-	db := dic.New(dbname)
-	notrans := dic.NewOnly(update)
+	db := dic.NewDic(dbname)
+	notrans := dic.NewUpt(update)
 	for i := 0; i < len(fmap); i++ {
 		if err := a.filter(fmap[i]); err != nil {
 			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
@@ -112,10 +116,10 @@ func (a *analysis) GetString(dbname, update, root string) {
 		if err != nil {
 			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
 		}
+		relativepath := strings.Split(fmap[i], root)[1]
 		for _, v := range entry {
 			if _, ok := db.Query(v); !ok {
-				if _, ok := notrans.Query(v); !ok {
-					notrans.Append(v, []byte(""))
+				if notrans.Append(v, []byte(""), relativepath) {
 					newcount += 1
 				}
 			}
@@ -141,12 +145,12 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
 		return
 	}
-	dbdata := dic.New(dbname)
-	notrans := dic.NewOnly(update)
+	dbdata := dic.NewDic(dbname)
+	notrans := dic.NewUpt(update)
 	copycount, transcount, newcount, ignorecount := 0, 0, 0, 0
 	pool := gpool.New(queue)
 	mutex := &sync.Mutex{}
-	fwork := func(oldfile, newfile string) {
+	fwork := func(oldfile, newfile, relativepath string) {
 		defer pool.Done()
 		var (
 			entry   [][]byte
@@ -187,8 +191,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 				} else {
 					context = append(context, bv[start[i]:end[i]])
 					mutex.Lock()
-					if _, ok := notrans.Query(entry[i]); !ok {
-						notrans.Append(entry[i], []byte(""))
+					if notrans.Append(entry[i], []byte(""), relativepath) {
 						newcount += 1
 					}
 					mutex.Unlock()
@@ -196,8 +199,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 			} else {
 				context = append(context, bv[start[i]:end[i]])
 				mutex.Lock()
-				if _, ok := notrans.Query(entry[i]); !ok {
-					notrans.Append(entry[i], []byte(""))
+				if notrans.Append(entry[i], []byte(""), relativepath) {
 					newcount += 1
 				}
 				mutex.Unlock()
@@ -229,8 +231,9 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 	}
 	for i := 0; i < len(fmap); i++ {
 		pool.Add(1)
+		relativepath := strings.Split(fmap[i], root)[1]
 		fpath := strings.Replace(fmap[i], root, output, 1)
-		go fwork(fmap[i], fpath)
+		go fwork(fmap[i], fpath, relativepath)
 	}
 	pool.Wait()
 	if newcount > 0 {
@@ -246,8 +249,8 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 
 func (a *analysis) Update(dbname, update string) {
 	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("update %s to %s", update, dbname))
-	dbdata := dic.New(dbname)
-	newdata := dic.New(update)
+	dbdata := dic.NewDic(dbname)
+	newdata := dic.NewDic(update)
 	text, trans := newdata.GetLine()
 	count := len(text)
 	if count > 0 {
