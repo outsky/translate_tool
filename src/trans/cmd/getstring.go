@@ -31,7 +31,6 @@ var getstringCmd = &cobra.Command{
 	Short: "Extract chinese characters",
 	Long:  `Extract Chinese characters from a file or directory and save it to a text file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
 		if len(getstring_srcpath) == 0 {
 			cmd.Help()
 			return
@@ -46,15 +45,6 @@ var getstringCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(getstringCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// getstringCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// getstringCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	getstringCmd.Flags().StringVarP(&getstring_dbname, "db", "d", "dictionary.txt", "Translation data dictionary")
 	getstringCmd.Flags().StringVarP(&getstring_update_data, "update", "u", "chinese.txt", "The new translation data")
 	getstringCmd.Flags().StringVarP(&getstring_srcpath, "src", "s", "", "The extracted file or directory path")

@@ -32,7 +32,6 @@ var transcodingCmd = &cobra.Command{
 	Long: `file transcoding Support utf8, gbk, hz-gb2312, gb18030, big5, euc-jp, iso-2022-jp, shift_jis, euc-kr.
 Notice: This tool can only transcoding, and can not be translated.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
 		if len(tc_decoding) <= 0 || len(tc_encoding) <= 0 || len(tc_input) <= 0 || len(tc_output) <= 0 {
 			cmd.Help()
 			return
@@ -44,15 +43,6 @@ Notice: This tool can only transcoding, and can not be translated.`,
 func init() {
 	RootCmd.AddCommand(transcodingCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// transcodingCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// transcodingCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	transcodingCmd.Flags().StringVarP(&tc_decoding, "decoding", "d", "", "encoding of input file")
 	transcodingCmd.Flags().StringVarP(&tc_encoding, "encoding", "e", "", "encoding of output file")
 	transcodingCmd.Flags().StringVarP(&tc_input, "input", "i", "", "Input file or directory")

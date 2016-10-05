@@ -7,8 +7,6 @@ import (
 	"trans/cmd"
 	"trans/filetool"
 	"trans/log"
-
-	//"github.com/pkg/profile"
 )
 
 const (
@@ -20,7 +18,6 @@ func initConfig() {
 	ft := filetool.GetInstance()
 	bv, err := ft.ReadFileLine(const_config_file)
 	if err != nil {
-		//log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
 		bv = [][]byte{
 			[]byte(";通过文件扩展名配置提取规则"),
 			[]byte(";支持‘lua_rules’，‘prefab_rules’，‘table_rules’"),
@@ -43,7 +40,7 @@ func initConfig() {
 	anal := analysis.GetInstance()
 	var nType int
 	for _, v := range bv {
-		if v[0] == 0x3b {
+		if v[0] == byte(';') {
 			continue
 		}
 		s := string(v)
@@ -79,7 +76,6 @@ func initFilter() {
 	ft := filetool.GetInstance()
 	bv, err := ft.ReadFileLine(const_ignore_file)
 	if err != nil {
-		//log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
 		bv = [][]byte{
 			[]byte(";这里是忽略的文件，每个文件一行"),
 			[]byte(";例如test.lua"),
@@ -95,7 +91,7 @@ func initFilter() {
 	}
 	anal := analysis.GetInstance()
 	for _, v := range bv {
-		if v[0] == 0x3b {
+		if v[0] == byte(';') {
 			continue
 		}
 		s := string(v)
@@ -107,16 +103,9 @@ func initFilter() {
 }
 
 func main() {
-	//defer profile.Start(profile.CPUProfile).Stop()
-	//defer profile.Start(profile.MemProfile).Stop()
-
-	// init log
 	defer log.CloseLog()
 
-	// init config
 	initConfig()
-
-	// init filter file
 	initFilter()
 
 	//init cobra

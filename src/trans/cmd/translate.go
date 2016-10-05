@@ -33,7 +33,6 @@ var translateCmd = &cobra.Command{
 	Short: "Translation file or directory",
 	Long:  `Translation using dictionary file or directory. If the output does not exist will be created automatically`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
 		if len(translate_srcpath) == 0 || len(translate_output) == 0 {
 			cmd.Help()
 			return
@@ -50,15 +49,6 @@ var translateCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(translateCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// translateCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// translateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	translateCmd.Flags().StringVarP(&translate_dbname, "db", "d", "dictionary.txt", "Translation data dictionary")
 	translateCmd.Flags().StringVarP(&translate_update_data, "update", "u", "chinese.txt", "The new translation data")
 	translateCmd.Flags().StringVarP(&translate_srcpath, "src", "s", "", "Translated file or directory path")
