@@ -37,8 +37,10 @@ func NewDic(file string) *dic {
 		if len(linev) < 4 || len(linev[2]) == 0 || len(linev[3]) == 0 {
 			if len(linev) < 4 {
 				log.Error("fc", fmt.Sprintf("[dic abnormal] %s(%d), cols: %d", file, i+1, len(linev)))
-			} else {
-				log.Error("fc", fmt.Sprintf("[dic abnormal] %s(%d), col3: %s, col4: %s.", file, i+1, linev[2], linev[3]))
+			} else if len(linev[2]) == 0 {
+				log.Error("fc", fmt.Sprintf("[dic abnormal] %s(%d), original empty", file, i+1))
+			} else if len(linev[3]) == 0 {
+				log.Error("fc", fmt.Sprintf("[dic abnormal] %s(%d), translation empty", file, i+1))
 			}
 			continue
 		}
