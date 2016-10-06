@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"trans/analysis/common"
+	"trans/analysis/ini"
 	"trans/analysis/lua"
 	"trans/analysis/prefab"
 	"trans/analysis/tabfile"
