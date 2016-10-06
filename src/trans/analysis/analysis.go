@@ -100,7 +100,7 @@ func (a *analysis) GetString(dbname, update, root string) {
 	ft := filetool.GetInstance()
 	fmap, err := ft.GetFilesMap(root)
 	if err != nil {
-		log.Error("fc", err)
+		log.Error("fc", err.Error())
 		return
 	}
 	newcount := 0
@@ -112,17 +112,17 @@ func (a *analysis) GetString(dbname, update, root string) {
 		}
 		ins, err := a.getPool(fmap[i])
 		if err != nil {
-			log.Info("f", err)
+			log.Info("f", err.Error())
 			continue
 		}
 		context, err := ft.ReadAll(fmap[i])
 		if err != nil {
-			log.Info("fc", err)
+			log.Info("fc", err.Error())
 			continue
 		}
 		entry, _, _, err := ins.GetString(context)
 		if err != nil {
-			log.Error("fc", err)
+			log.Error("fc", err.Error())
 		}
 		relativepath := strings.Split(fmap[i], root)[1]
 		for _, v := range entry {
@@ -149,7 +149,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 	ft := filetool.GetInstance()
 	fmap, err := ft.GetFilesMap(root)
 	if err != nil {
-		log.Error("fc", err)
+		log.Error("fc", err.Error())
 		return
 	}
 	dbdata := dic.NewDic(dbname)
@@ -169,7 +169,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 		)
 		bv, err := ft.ReadAll(oldfile)
 		if err != nil {
-			log.Error("fc", err)
+			log.Error("fc", err.Error())
 			return
 		}
 		if a.shouldIgnore(oldfile) {
@@ -178,12 +178,12 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 		}
 		ins, err := a.getPool(oldfile)
 		if err != nil {
-			log.Info("f", err)
+			log.Info("f", err.Error())
 			goto Point
 		}
 		entry, start, end, err = ins.GetString(bv)
 		if err != nil {
-			log.Error("fc", err)
+			log.Error("fc", err.Error())
 			goto Point
 		}
 		nStart = 0
@@ -218,10 +218,10 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 		if len(context) > 0 {
 			oldencoding, err := ft.SetEncoding(newfile, "utf8")
 			if err != nil {
-				log.Error("fc", err)
+				log.Error("fc", err.Error())
 			} else {
 				if err := ft.WriteAll(newfile, bytes.Join(context, []byte(""))); err != nil {
-					log.Error("fc", err)
+					log.Error("fc", err.Error())
 				} else {
 					transcount += 1
 				}
@@ -229,7 +229,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 			}
 		} else {
 			if err := ft.WriteAll(newfile, bv); err != nil {
-				log.Error("fc", err)
+				log.Error("fc", err.Error())
 			} else {
 				copycount += 1
 			}

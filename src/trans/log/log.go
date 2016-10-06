@@ -39,21 +39,21 @@ func getinstance() *log {
 		if errlog != nil {
 			panic(errlog)
 		}
-		instance.file = _log.New(instance.fhandle, "", _log.LstdFlags)
-		instance.console = _log.New(os.Stdout, "", _log.LstdFlags)
+		instance.file = _log.New(instance.fhandle, "", _log.Lshortfile|_log.Ltime)
+		instance.console = _log.New(os.Stdout, "", 0)
 	})
 	return instance
 }
 
-func writeLog(flag int, prefix string, v ...interface{}) {
+func writeLog(flag int, prefix string, msg string) {
 	l := getinstance()
 	if l.file != nil && flag&flagFile != 0 {
 		l.file.SetPrefix(prefix)
-		l.file.Println(v...)
+		l.file.Println(msg)
 	}
 	if l.console != nil && flag&flagConsole != 0 {
 		l.console.SetPrefix(prefix)
-		l.console.Println(v...)
+		l.console.Println(msg)
 	}
 }
 
@@ -86,12 +86,12 @@ func SetLogPath(path string) {
 	logpath = strings.TrimSpace(path)
 }
 
-func Info(flag string, v ...interface{}) {
+func Info(flag string, msg string) {
 	f := parseFlag(flag)
-	writeLog(f, preInfo, v)
+	writeLog(f, preInfo, msg)
 }
 
-func Error(flag string, v ...interface{}) {
+func Error(flag string, msg string) {
 	f := parseFlag(flag)
-	writeLog(f, preError, v)
+	writeLog(f, preError, msg)
 }
