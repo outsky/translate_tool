@@ -113,7 +113,7 @@ func (p *prefab) GetString(context []byte) ([][]byte, []int, []int, error) {
 		}
 	}
 	if nState != state_normal {
-		return entryTotal, entryStart, entryEnd, errors.New(fmt.Sprintf("file syntax error: %s(%d)", p.filename, nState))
+		return entryTotal, entryStart, entryEnd, errors.New(fmt.Sprintf("syntax(prefab): %s(%d)", p.filename, nState))
 	}
 	return entryTotal, entryStart, entryEnd, nil
 }

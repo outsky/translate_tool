@@ -73,7 +73,7 @@ func initConfig() {
 	}
 }
 
-func initFilter() {
+func initIgnore() {
 	ft := filetool.GetInstance()
 	bv, err := ft.ReadFileLine(const_ignore_file)
 	if err != nil {
@@ -107,7 +107,7 @@ func main() {
 	defer log.CloseLog()
 
 	initConfig()
-	initFilter()
+	initIgnore()
 
 	//init cobra
 	cmd.Execute()

@@ -171,7 +171,7 @@ func (l *lua) GetString(context []byte) ([][]byte, []int, []int, error) {
 		}
 	}
 	if nState != state_normal && nState != state_note_line {
-		return entryTotal, entryStart, entryEnd, errors.New(fmt.Sprintf("file syntax error: %s(%d)", l.filename, nState))
+		return entryTotal, entryStart, entryEnd, errors.New(fmt.Sprintf("syntax(lua): %s(%d)", l.filename, nState))
 	}
 	return entryTotal, entryStart, entryEnd, nil
 }

@@ -13,7 +13,7 @@ const (
 )
 
 const (
-	preInfo  string = "[!]"
+	preInfo  string = "   "
 	preError string = "[x]"
 )
 

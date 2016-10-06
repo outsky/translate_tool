@@ -81,6 +81,10 @@ func (a *analysis) getPool(file string) (delegate, error) {
 }
 
 func (a *analysis) shouldIgnore(name string) bool {
+	ext := path.Ext(name)
+	if _, ok := a.filterMap[ext]; ok {
+		return true
+	}
 	namev := strings.Split(name, "/")
 	for _, filename := range namev {
 		if _, ok := a.filterMap[filename]; ok {
