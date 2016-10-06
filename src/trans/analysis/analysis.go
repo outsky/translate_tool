@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+
 	"trans/analysis/common"
 	"trans/analysis/lua"
 	"trans/analysis/prefab"

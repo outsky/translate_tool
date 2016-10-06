@@ -16,42 +16,43 @@ package cmd
 
 import (
 	"path"
-	"trans/analysis"
 
 	"github.com/spf13/cobra"
+
+	"trans/analysis"
 )
 
-var translate_dbname string
-var translate_update_data string
-var translate_srcpath string
-var translate_output string
-var translate_routine int
+var dbname string
+var updateData string
+var srcPath string
+var output string
+var routine int
 
-// translateCmd represents the translate command
-var translateCmd = &cobra.Command{
+// cmd represents the translate command
+var cmd = &cobra.Command{
 	Use:   "translate",
 	Short: "Translation file or directory",
 	Long:  `Translation using dictionary file or directory. If the output does not exist will be created automatically`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(translate_srcpath) == 0 || len(translate_output) == 0 {
+		if len(srcPath) == 0 || len(output) == 0 {
 			cmd.Help()
 			return
 		}
 		analysis.GetInstance().Translate(
-			path.Clean(translate_dbname),
-			path.Clean(translate_update_data),
-			path.Clean(translate_srcpath),
-			path.Clean(translate_output),
-			translate_routine)
+			path.Clean(dbname),
+			path.Clean(updateData),
+			path.Clean(srcPath),
+			path.Clean(output),
+			routine)
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(translateCmd)
+	RootCmd.AddCommand(cmd)
 
-	translateCmd.Flags().StringVarP(&translate_dbname, "db", "d", "dictionary.txt", "Translation data dictionary")
-	translateCmd.Flags().StringVarP(&translate_update_data, "update", "u", "chinese.txt", "The new translation data")
-	translateCmd.Flags().StringVarP(&translate_srcpath, "src", "s", "", "Translated file or directory path")
-	translateCmd.Flags().StringVarP(&translate_output, "output", "o", "", "The output file or directory path translated")
-	translateCmd.Flags().IntVarP(&translate_routine, "routine", "r", 1, "Goroutine number. This is a test parameters")
+	cmd.Flags().StringVarP(&dbname, "db", "d", "dictionary.txt", "Translation data dictionary")
+	cmd.Flags().StringVarP(&updateData, "update", "u", "chinese.txt", "The new translation data")
+	cmd.Flags().StringVarP(&srcPath, "src", "s", "", "Translated file or directory path")
+	cmd.Flags().StringVarP(&output, "output", "o", "", "The output file or directory path translated")
+	cmd.Flags().IntVarP(&routine, "routine", "r", 1, "Goroutine number. This is a test parameters")
 }
