@@ -188,7 +188,7 @@ func (ft *filetool) ReadFileLine(name string) ([][]byte, error) {
 }
 
 func (ft *filetool) SaveFileLine(name string, context [][]byte) error {
-	f, err := os.Create(name)
+	f, err := os.OpenFile(name, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 066)
 	defer f.Close()
 	if err != nil {
 		return err

@@ -3,10 +3,8 @@ package log
 import (
 	_log "log"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 const (
@@ -35,9 +33,9 @@ func getinstance() *log {
 	once.Do(func() {
 		instance = &log{}
 		if len(logpath) <= 0 {
-			logpath = "log_" + strconv.FormatInt(time.Now().Unix(), 10) + ".txt"
+			logpath = "log.txt"
 		}
-		instance.fhandle, errlog = os.Create(logpath)
+		instance.fhandle, errlog = os.OpenFile(logpath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if errlog != nil {
 			panic(errlog)
 		}
