@@ -62,7 +62,7 @@ func (a *analysis) getPool(file string) (delegate, error) {
 	file_ex := path.Ext(file)
 	rule, ok := a.rulesMap[file_ex]
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
+		return nil, errors.New(fmt.Sprintf("no rule: %s", file))
 	}
 	switch rule {
 	case const_rule_common:
@@ -76,7 +76,7 @@ func (a *analysis) getPool(file string) (delegate, error) {
 	case const_rule_ini:
 		return ini.New(), nil
 	default:
-		return nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
+		return nil, errors.New(fmt.Sprintf("rule not defined: %s(%s)", file, rule))
 	}
 }
 
@@ -242,7 +242,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 		notrans.Save()
 		log.Info("fc", fmt.Sprintf("generate %s, new line number: %d.", update, newcount))
 	}
-	log.Info("fc", fmt.Sprintf("translate file %d, copy file %d, ignore file %d, total %d/%d. finished!",
+	log.Info("fc", fmt.Sprintf("translate file %d, copy file %d, ignore file %d, total %d/%d.\n\n",
 		transcount, copycount, ignorecount, transcount+copycount+ignorecount, len(fmap)))
 	return
 }

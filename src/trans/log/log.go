@@ -13,8 +13,8 @@ const (
 )
 
 const (
-	preInfo  string = "[INFO]  "
-	preError string = "[ERROR] "
+	preInfo  string = "[!]"
+	preError string = "[x]"
 )
 
 type log struct {
