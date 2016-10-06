@@ -32,17 +32,18 @@ func NewDic(file string) *dic {
 	}
 	for i := 1; i < len(all); i++ {
 		v := all[i]
-		linev := bytes.Split(v, []byte{0x09})
-		if len(linev) < 2 || len(linev[0]) == 0 || len(linev[1]) == 0 {
-			log.Error("fc", fmt.Sprintf("[dic abnormal] file:%s, line:%d, data:%s", file, i+1, v))
+		linev := bytes.Split(v, []byte{'\t'})
+		// ID	File	Original	Translation
+		if len(linev) < 4 || len(linev[2]) == 0 || len(linev[3]) == 0 {
+			log.Error("fc", fmt.Sprintf("[dic abnormal] file:%s, line:%d", file, i+1))
 			continue
 		}
-		key := string(linev[0])
+		key := string(linev[2])
 		if _, ok := ins.trans[key]; ok {
-			log.Error("fc", fmt.Sprintf("[dic repeat] file:%s, line:%d, data:%s", file, i+1, key))
+			log.Error("fc", fmt.Sprintf("[dic repeat] file:%s, line:%d, key:%s", file, i+1, key))
 			continue
 		}
-		ins.trans[key] = string(linev[1])
+		ins.trans[key] = string(linev[3])
 		ins.line = append(ins.line, v)
 		ins.key2idx[key] = len(ins.line) - 1
 	}
@@ -73,7 +74,7 @@ func (d *dic) GetLine() ([][]byte, [][]byte) {
 	var trans [][]byte
 	for i := 0; i < len(d.line); i++ {
 		elem := d.line[i]
-		elemv := bytes.Split(elem, []byte{0x09})
+		elemv := bytes.Split(elem, []byte{'\t'})
 		if len(elemv) < 2 || len(elemv[0]) == 0 || len(elemv[1]) == 0 {
 			continue
 		}
