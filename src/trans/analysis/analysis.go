@@ -80,14 +80,14 @@ func (a *analysis) getPool(file string) (delegate, error) {
 	}
 }
 
-func (a *analysis) filter(name string) error {
+func (a *analysis) shouldIgnore(name string) bool {
 	namev := strings.Split(name, "/")
 	for _, filename := range namev {
 		if _, ok := a.filterMap[filename]; ok {
-			return errors.New(fmt.Sprintf("[ingnore file] %s", name))
+			return true
 		}
 	}
-	return nil
+	return false
 }
 
 func (a *analysis) GetString(dbname, update, root string) {
@@ -103,8 +103,7 @@ func (a *analysis) GetString(dbname, update, root string) {
 	db := dic.NewDic(dbname)
 	notrans := dic.NewUpt(update)
 	for i := 0; i < len(fmap); i++ {
-		if err := a.filter(fmap[i]); err != nil {
-			log.Info("fc", err)
+		if a.shouldIgnore(fmap[i]) {
 			continue
 		}
 		ins, err := a.getPool(fmap[i])
@@ -169,8 +168,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 			log.Error("fc", err)
 			return
 		}
-		if err := a.filter(oldfile); err != nil {
-			log.Info("fc", err)
+		if a.shouldIgnore(oldfile) {
 			ignorecount += 1
 			return
 		}
