@@ -29,10 +29,12 @@ const (
 	state_double_brackets        //[[中括号]]字符串
 )
 
-type lua struct{}
+type lua struct {
+	filename string
+}
 
-func New() *lua {
-	return &lua{}
+func New(file string) *lua {
+	return &lua{file}
 }
 
 func (l *lua) filter(text []byte) bool {
@@ -169,7 +171,7 @@ func (l *lua) GetString(context []byte) ([][]byte, []int, []int, error) {
 		}
 	}
 	if nState != state_normal && nState != state_note_line {
-		return entryTotal, entryStart, entryEnd, errors.New(fmt.Sprintf("[file syntax error] state: %d", nState))
+		return entryTotal, entryStart, entryEnd, errors.New(fmt.Sprintf("file syntax error: %s(%d)", l.filename, nState))
 	}
 	return entryTotal, entryStart, entryEnd, nil
 }

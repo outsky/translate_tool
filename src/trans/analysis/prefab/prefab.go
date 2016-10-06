@@ -35,10 +35,12 @@ var const_clean_flag2 [][]byte = [][]byte{
 	{10, 32, 32, 32, 32},
 }
 
-type prefab struct{}
+type prefab struct {
+	filename string
+}
 
-func New() *prefab {
-	return &prefab{}
+func New(file string) *prefab {
+	return &prefab{file}
 }
 
 func (p *prefab) cleanWrap(text []byte) []byte {
@@ -111,7 +113,7 @@ func (p *prefab) GetString(context []byte) ([][]byte, []int, []int, error) {
 		}
 	}
 	if nState != state_normal {
-		return entryTotal, entryStart, entryEnd, errors.New(fmt.Sprintf("[file syntax error] state: %d", nState))
+		return entryTotal, entryStart, entryEnd, errors.New(fmt.Sprintf("file syntax error: %s(%d)", p.filename, nState))
 	}
 	return entryTotal, entryStart, entryEnd, nil
 }

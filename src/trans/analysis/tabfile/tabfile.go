@@ -15,10 +15,12 @@ const (
 	state_double_quotes        //"双引号"字符串
 )
 
-type tabfile struct{}
+type tabfile struct {
+	filename string
+}
 
-func New() *tabfile {
-	return &tabfile{}
+func New(file string) *tabfile {
+	return &tabfile{file}
 }
 
 func (t *tabfile) filter(text []byte) bool {

@@ -66,15 +66,15 @@ func (a *analysis) getPool(file string) (delegate, error) {
 	}
 	switch rule {
 	case const_rule_common:
-		return common.New(), nil
+		return common.New(file), nil
 	case const_rule_lua:
-		return lua.New(), nil
+		return lua.New(file), nil
 	case const_rule_prefab:
-		return prefab.New(), nil
+		return prefab.New(file), nil
 	case const_rule_tablefile:
-		return tabfile.New(), nil
+		return tabfile.New(file), nil
 	case const_rule_ini:
-		return ini.New(), nil
+		return ini.New(file), nil
 	default:
 		return nil, errors.New(fmt.Sprintf("rule not defined: %s(%s)", file, rule))
 	}

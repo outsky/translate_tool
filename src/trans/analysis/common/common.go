@@ -14,10 +14,12 @@ const (
 	state_working        //工作状态
 )
 
-type common struct{}
+type common struct {
+	filename string
+}
 
-func New() *common {
-	return &common{}
+func New(file string) *common {
+	return &common{file}
 }
 
 func (t *common) GetString(text []byte) ([][]byte, []int, []int, error) {

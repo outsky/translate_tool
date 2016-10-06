@@ -4,10 +4,12 @@ package ini
 
 import ()
 
-type ini struct{}
+type ini struct {
+	filename string
+}
 
-func New() *ini {
-	return &ini{}
+func New(file string) *ini {
+	return &ini{file}
 }
 
 func shouldRecord(txt []byte) bool {
