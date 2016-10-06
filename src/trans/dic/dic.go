@@ -35,12 +35,16 @@ func NewDic(file string) *dic {
 		linev := bytes.Split(v, []byte{'\t'})
 		// ID	File	Original	Translation
 		if len(linev) < 4 || len(linev[2]) == 0 || len(linev[3]) == 0 {
-			log.Error("fc", fmt.Sprintf("[dic abnormal] file:%s, line:%d", file, i+1))
+			if len(linev) < 4 {
+				log.Error("fc", fmt.Sprintf("[dic abnormal] %s(%d), cols: %d", file, i+1, len(linev)))
+			} else {
+				log.Error("fc", fmt.Sprintf("[dic abnormal] %s(%d), col3: %s, col4: %s.", file, i+1, linev[2], linev[3]))
+			}
 			continue
 		}
 		key := string(linev[2])
 		if _, ok := ins.trans[key]; ok {
-			log.Error("fc", fmt.Sprintf("[dic repeat] file:%s, line:%d, key:%s", file, i+1, key))
+			log.Error("fc", fmt.Sprintf("[dic repeat] %s(%d), key: %s", file, i+1, key))
 			continue
 		}
 		ins.trans[key] = string(linev[3])
