@@ -45,7 +45,7 @@ var cmd = &cobra.Command{
 			path.Clean(srcPath),
 			path.Clean(output),
 			routine,
-			path.Clean(logpath))
+			logpath)
 	},
 }
 
