@@ -3,6 +3,7 @@ package tabfile_test
 import (
 	"fmt"
 	"testing"
+
 	"trans/analysis/tabfile"
 	"trans/filetool"
 )

@@ -20,7 +20,7 @@ func initConfig() {
 	if err != nil {
 		bv = [][]byte{
 			[]byte(";通过文件扩展名配置提取规则"),
-			[]byte(";支持‘lua_rules’，‘prefab_rules’，‘table_rules’"),
+			[]byte(";支持‘lua_rules’，‘prefab_rules’，‘table_rules’, 'ini_rules'"),
 			[]byte("[rules]"),
 			[]byte(".lua=lua_rules"),
 			[]byte(".prefab=prefab_rules"),

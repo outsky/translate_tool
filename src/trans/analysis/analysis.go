@@ -29,10 +29,11 @@ type analysis struct {
 }
 
 const (
+	const_rule_common    = "common_rules"
 	const_rule_lua       = "lua_rules"
 	const_rule_prefab    = "prefab_rules"
 	const_rule_tablefile = "table_rules"
-	const_rule_common    = "common_rules"
+	const_rule_ini       = "ini_rules"
 )
 
 var instance *analysis
@@ -63,14 +64,16 @@ func (a *analysis) getPool(file string) (delegate, error) {
 		return nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
 	}
 	switch rule {
+	case const_rule_common:
+		return common.New(), nil
 	case const_rule_lua:
 		return lua.New(), nil
 	case const_rule_prefab:
 		return prefab.New(), nil
 	case const_rule_tablefile:
 		return tabfile.New(), nil
-	case const_rule_common:
-		return common.New(), nil
+	case const_rule_ini:
+		return ini.New(), nil
 	default:
 		return nil, errors.New(fmt.Sprintf("[not extract rule] %s", file))
 	}
