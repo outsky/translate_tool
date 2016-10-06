@@ -249,30 +249,30 @@ func (ft *filetool) Transcoding(input, decoding, output, encoding string) {
 	output = strings.TrimRight(strings.Replace(output, "\\", "/", -1), "/")
 	filemap, err := ft.GetFilesMap(input)
 	if err != nil {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		log.Error("fc", err)
 		return
 	}
 	decode, ok := ft.encodingmap[decoding]
 	if !ok {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("%s not exsit!", decoding))
+		log.Error("fc", fmt.Sprintf("%s not exsit!", decoding))
 	}
 	encode, ok := ft.encodingmap[encoding]
 	if !ok {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("%s not exsit!", encoding))
+		log.Error("fc", fmt.Sprintf("%s not exsit!", encoding))
 	}
 	count := 0
 	for i := 0; i < len(filemap); i++ {
 		context, err := ft.readAll(filemap[i], decode)
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			log.Info("fc", err)
 			continue
 		}
 		path := strings.Replace(filemap[i], input, output, 1)
 		if err := ft.writeAll(path, context, encode); err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			log.Info("fc", err)
 			continue
 		}
 		count += 1
 	}
-	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("Converts %s to %s, %d/%d file(s), finished.", decoding, encoding, count, len(filemap)))
+	log.Info("fc", fmt.Sprintf("Converts %s to %s, %d/%d file(s), finished.", decoding, encoding, count, len(filemap)))
 }

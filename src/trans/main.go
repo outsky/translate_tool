@@ -34,7 +34,7 @@ func initConfig() {
 		}
 		err = ft.SaveFileLine(const_config_file, bv)
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+			log.Error("fc", err)
 		}
 	}
 	anal := analysis.GetInstance()
@@ -86,7 +86,7 @@ func initFilter() {
 		}
 		err = ft.SaveFileLine(const_ignore_file, bv)
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+			log.Error("fc", err)
 		}
 	}
 	anal := analysis.GetInstance()

@@ -88,11 +88,11 @@ func (a *analysis) filter(name string) error {
 
 func (a *analysis) GetString(dbname, update, root string) {
 	root = strings.TrimRight(strings.Replace(root, "\\", "/", -1), "/")
-	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("extract chinese from %s", root))
+	log.Info("fc", fmt.Sprintf("extract chinese from %s", root))
 	ft := filetool.GetInstance()
 	fmap, err := ft.GetFilesMap(root)
 	if err != nil {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		log.Error("fc", err)
 		return
 	}
 	newcount := 0
@@ -100,22 +100,22 @@ func (a *analysis) GetString(dbname, update, root string) {
 	notrans := dic.NewUpt(update)
 	for i := 0; i < len(fmap); i++ {
 		if err := a.filter(fmap[i]); err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			log.Info("fc", err)
 			continue
 		}
 		ins, err := a.getPool(fmap[i])
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			log.Info("fc", err)
 			continue
 		}
 		context, err := ft.ReadAll(fmap[i])
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			log.Info("fc", err)
 			continue
 		}
 		entry, _, _, err := ins.GetString(context)
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+			log.Error("fc", err)
 		}
 		relativepath := strings.Split(fmap[i], root)[1]
 		for _, v := range entry {
@@ -128,22 +128,20 @@ func (a *analysis) GetString(dbname, update, root string) {
 	}
 	if newcount > 0 {
 		notrans.Save()
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-			fmt.Sprintf("generate %s, new line number: %d. finished!", update, newcount))
+		log.Info("fc", fmt.Sprintf("generate %s, new line number: %d. finished!", update, newcount))
 	} else {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-			fmt.Sprintf("nothing to do. finished!"))
+		log.Info("fc", fmt.Sprintf("nothing to do. finished!"))
 	}
 }
 
 func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 	root = strings.TrimRight(strings.Replace(root, "\\", "/", -1), "/")
 	output = strings.TrimRight(strings.Replace(output, "\\", "/", -1), "/")
-	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("translate %s to %s", root, output))
+	log.Info("fc", fmt.Sprintf("translate %s to %s", root, output))
 	ft := filetool.GetInstance()
 	fmap, err := ft.GetFilesMap(root)
 	if err != nil {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		log.Error("fc", err)
 		return
 	}
 	dbdata := dic.NewDic(dbname)
@@ -163,22 +161,22 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 		)
 		bv, err := ft.ReadAll(oldfile)
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+			log.Error("fc", err)
 			return
 		}
 		if err := a.filter(oldfile); err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			log.Info("fc", err)
 			ignorecount += 1
 			return
 		}
 		ins, err := a.getPool(oldfile)
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+			log.Info("fc", err)
 			goto Point
 		}
 		entry, start, end, err = ins.GetString(bv)
 		if err != nil {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+			log.Error("fc", err)
 			goto Point
 		}
 		nStart = 0
@@ -213,10 +211,10 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 		if len(context) > 0 {
 			oldencoding, err := ft.SetEncoding(newfile, "utf8")
 			if err != nil {
-				log.WriteLog(log.LOG_PRINT|log.LOG_FILE, log.LOG_ERROR, err)
+				log.Error("fc", err)
 			} else {
 				if err := ft.WriteAll(newfile, bytes.Join(context, []byte(""))); err != nil {
-					log.WriteLog(log.LOG_PRINT|log.LOG_FILE, log.LOG_ERROR, err)
+					log.Error("fc", err)
 				} else {
 					transcount += 1
 				}
@@ -224,7 +222,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 			}
 		} else {
 			if err := ft.WriteAll(newfile, bv); err != nil {
-				log.WriteLog(log.LOG_PRINT|log.LOG_FILE, log.LOG_ERROR, err)
+				log.Error("fc", err)
 			} else {
 				copycount += 1
 			}
@@ -239,17 +237,15 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 	pool.Wait()
 	if newcount > 0 {
 		notrans.Save()
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-			fmt.Sprintf("generate %s, new line number: %d.", update, newcount))
+		log.Info("fc", fmt.Sprintf("generate %s, new line number: %d.", update, newcount))
 	}
-	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-		fmt.Sprintf("translate file %d, copy file %d, ignore file %d, total %d/%d. finished!",
-			transcount, copycount, ignorecount, transcount+copycount+ignorecount, len(fmap)))
+	log.Info("fc", fmt.Sprintf("translate file %d, copy file %d, ignore file %d, total %d/%d. finished!",
+		transcount, copycount, ignorecount, transcount+copycount+ignorecount, len(fmap)))
 	return
 }
 
 func (a *analysis) Update(dbname, update string) {
-	log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, fmt.Sprintf("update %s to %s", update, dbname))
+	log.Info("fc", fmt.Sprintf("update %s to %s", update, dbname))
 	dbdata := dic.NewDic(dbname)
 	newdata := dic.NewDic(update)
 	text, trans := newdata.GetLine()
@@ -259,9 +255,8 @@ func (a *analysis) Update(dbname, update string) {
 			dbdata.Append(text[i], trans[i])
 		}
 		dbdata.Save()
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO,
-			fmt.Sprintf("update line number: %d. finished!", count))
+		log.Info("fc", fmt.Sprintf("update line number: %d. finished!", count))
 	} else {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, "nothing to do. finished!")
+		log.Info("fc", "nothing to do. finished!")
 	}
 }

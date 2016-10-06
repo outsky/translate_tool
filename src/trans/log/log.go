@@ -7,19 +7,19 @@ import (
 )
 
 const (
-	LOG_FILE = 1 << iota
-	LOG_PRINT
+	flagFile = 1 << iota
+	flagConsole
 )
 
 const (
-	LOG_INFO  string = "[INFO]  "
-	LOG_ERROR string = "[ERROR] "
+	preInfo  string = "[INFO]  "
+	preError string = "[ERROR] "
 )
 
 type log struct {
-	fhandle  *os.File
-	logFile  *_log.Logger
-	logPrint *_log.Logger
+	fhandle *os.File
+	file    *_log.Logger
+	console *_log.Logger
 }
 
 var errlog error
@@ -38,8 +38,8 @@ func getinstance() *log {
 		if errlog != nil {
 			panic(errlog)
 		}
-		instance.logFile = _log.New(instance.fhandle, "", _log.LstdFlags)
-		instance.logPrint = _log.New(os.Stdout, "", _log.LstdFlags)
+		instance.file = _log.New(instance.fhandle, "", _log.LstdFlags)
+		instance.console = _log.New(os.Stdout, "", _log.LstdFlags)
 	})
 	return instance
 }
@@ -50,18 +50,43 @@ func (l *log) Close() {
 	}
 }
 
-func WriteLog(flag int, level string, v ...interface{}) {
+func writeLog(flag int, prefix string, v ...interface{}) {
 	l := getinstance()
-	if l.logFile != nil && flag&LOG_FILE != 0 {
-		l.logFile.SetPrefix(level)
-		l.logFile.Println(v...)
+	if l.file != nil && flag&flagFile != 0 {
+		l.file.SetPrefix(prefix)
+		l.file.Println(v...)
 	}
-	if l.logPrint != nil && flag&LOG_PRINT != 0 {
-		l.logPrint.SetPrefix(level)
-		l.logPrint.Println(v...)
+	if l.console != nil && flag&flagConsole != 0 {
+		l.console.SetPrefix(prefix)
+		l.console.Println(v...)
 	}
+}
+
+// flag:
+//	f - file
+//	c - console
+func parseFlag(flag string) int {
+	ret := 0
+	for _, c := range flag {
+		if c == 'f' {
+			ret |= flagFile
+		} else if c == 'c' {
+			ret |= flagConsole
+		}
+	}
+	return ret
 }
 
 func CloseLog() {
 	getinstance().Close()
+}
+
+func Info(flag string, v ...interface{}) {
+	f := parseFlag(flag)
+	writeLog(f, preInfo, v)
+}
+
+func Error(flag string, v ...interface{}) {
+	f := parseFlag(flag)
+	writeLog(f, preError, v)
 }

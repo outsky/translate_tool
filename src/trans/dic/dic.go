@@ -27,19 +27,19 @@ func NewDic(file string) *dic {
 	defer ft.SetEncoding(file, oldEncode)
 	all, err := ft.ReadFileLine(file)
 	if err != nil {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_INFO, err)
+		log.Info("fc", err)
 		return ins
 	}
 	for i := 1; i < len(all); i++ {
 		v := all[i]
 		linev := bytes.Split(v, []byte{0x09})
 		if len(linev) < 2 || len(linev[0]) == 0 || len(linev[1]) == 0 {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic abnormal] file:%s, line:%d, data:%s", file, i+1, v))
+			log.Error("fc", fmt.Sprintf("[dic abnormal] file:%s, line:%d, data:%s", file, i+1, v))
 			continue
 		}
 		key := string(linev[0])
 		if _, ok := ins.trans[key]; ok {
-			log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, fmt.Sprintf("[dic repeat] file:%s, line:%d, data:%s", file, i+1, key))
+			log.Error("fc", fmt.Sprintf("[dic repeat] file:%s, line:%d, data:%s", file, i+1, key))
 			continue
 		}
 		ins.trans[key] = string(linev[1])
@@ -92,7 +92,7 @@ func (d *dic) Save() {
 	all = append(all, d.line...)
 	err := ft.SaveFileLine(d.name, all)
 	if err != nil {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		log.Error("fc", err)
 	}
 }
 
@@ -149,6 +149,6 @@ func (d *upt) Save() {
 	all = append(all, d.line...)
 	err := ft.SaveFileLine(d.name, all)
 	if err != nil {
-		log.WriteLog(log.LOG_FILE|log.LOG_PRINT, log.LOG_ERROR, err)
+		log.Error("fc", err)
 	}
 }
