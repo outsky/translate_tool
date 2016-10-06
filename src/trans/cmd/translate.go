@@ -26,6 +26,7 @@ var dbname string
 var updateData string
 var srcPath string
 var output string
+var logpath string
 var routine int
 
 // cmd represents the translate command
@@ -43,13 +44,15 @@ var cmd = &cobra.Command{
 			path.Clean(updateData),
 			path.Clean(srcPath),
 			path.Clean(output),
-			routine)
+			routine,
+			path.Clean(logpath))
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(cmd)
 
+	cmd.Flags().StringVarP(&logpath, "log", "l", "", "Log path")
 	cmd.Flags().StringVarP(&dbname, "db", "d", "dictionary.txt", "Translation data dictionary")
 	cmd.Flags().StringVarP(&updateData, "update", "u", "chinese.txt", "The new translation data")
 	cmd.Flags().StringVarP(&srcPath, "src", "s", "", "Translated file or directory path")

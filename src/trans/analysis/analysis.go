@@ -109,7 +109,7 @@ func (a *analysis) GetString(dbname, update, root string) {
 		}
 		ins, err := a.getPool(fmap[i])
 		if err != nil {
-			log.Info("fc", err)
+			log.Info("f", err)
 			continue
 		}
 		context, err := ft.ReadAll(fmap[i])
@@ -138,7 +138,8 @@ func (a *analysis) GetString(dbname, update, root string) {
 	}
 }
 
-func (a *analysis) Translate(dbname, update, root, output string, queue int) {
+func (a *analysis) Translate(dbname, update, root, output string, queue int, logpath string) {
+	log.SetLogPath(logpath)
 	root = strings.TrimRight(strings.Replace(root, "\\", "/", -1), "/")
 	output = strings.TrimRight(strings.Replace(output, "\\", "/", -1), "/")
 	log.Info("fc", fmt.Sprintf("translate %s to %s", root, output))
@@ -175,7 +176,7 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int) {
 		}
 		ins, err := a.getPool(oldfile)
 		if err != nil {
-			log.Info("fc", err)
+			log.Info("f", err)
 			goto Point
 		}
 		entry, start, end, err = ins.GetString(bv)

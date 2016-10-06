@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+
 	"trans/analysis"
 	"trans/cmd"
 	"trans/filetool"

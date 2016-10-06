@@ -3,7 +3,10 @@ package log
 import (
 	_log "log"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -23,10 +26,7 @@ type log struct {
 }
 
 var errlog error
-
-const (
-	const_log_file string = "log.txt"
-)
+var logpath string
 
 var instance *log
 var once sync.Once
@@ -34,7 +34,10 @@ var once sync.Once
 func getinstance() *log {
 	once.Do(func() {
 		instance = &log{}
-		instance.fhandle, errlog = os.Create(const_log_file)
+		if len(logpath) <= 0 {
+			logpath = "log_" + strconv.FormatInt(time.Now().Unix(), 10) + ".txt"
+		}
+		instance.fhandle, errlog = os.Create(logpath)
 		if errlog != nil {
 			panic(errlog)
 		}
@@ -42,12 +45,6 @@ func getinstance() *log {
 		instance.console = _log.New(os.Stdout, "", _log.LstdFlags)
 	})
 	return instance
-}
-
-func (l *log) Close() {
-	if l.fhandle != nil {
-		l.fhandle.Close()
-	}
 }
 
 func writeLog(flag int, prefix string, v ...interface{}) {
@@ -79,6 +76,16 @@ func parseFlag(flag string) int {
 
 func CloseLog() {
 	getinstance().Close()
+}
+
+func (l *log) Close() {
+	if l.fhandle != nil {
+		l.fhandle.Close()
+	}
+}
+
+func SetLogPath(path string) {
+	logpath = strings.TrimSpace(path)
 }
 
 func Info(flag string, v ...interface{}) {
