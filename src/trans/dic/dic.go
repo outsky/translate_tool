@@ -34,10 +34,11 @@ func NewDic(file string) *dic {
 		v := all[i]
 		linev := bytes.Split(v, []byte{'\t'})
 		// ID	File	Original	Translation
-		if len(linev) < 4 || len(linev[2]) == 0 || len(linev[3]) == 0 {
-			if len(linev) < 4 {
-				log.Error("fc", fmt.Sprintf("%s(%d), cols: %d", file, i+1, len(linev)))
-			} else if len(linev[2]) == 0 {
+		if len(linev) < 4 {
+			continue
+		}
+		if len(linev[2]) == 0 || len(linev[3]) == 0 {
+			if len(linev[2]) == 0 {
 				log.Error("fc", fmt.Sprintf("%s(%d), original empty", file, i+1))
 			} else if len(linev[3]) == 0 {
 				log.Error("fc", fmt.Sprintf("%s(%d), translation empty", file, i+1))
