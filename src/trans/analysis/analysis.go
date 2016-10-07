@@ -244,10 +244,15 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 	pool.Wait()
 	if newcount > 0 {
 		notrans.Save()
-		log.Info("fc", fmt.Sprintf("%d new added to %s", newcount, update))
+		log.Info("f", fmt.Sprintf("%d new added to %s", newcount, update))
 	}
-	log.Info("fc", fmt.Sprintf("Done: translate %d, copy %d, ignore %d, total %d/%d\n\n",
-		transcount, copycount, ignorecount, transcount+copycount+ignorecount, len(fmap)))
+
+	failed := len(fmap) - (transcount + copycount + ignorecount)
+	log.Info("fc", fmt.Sprintf("Done: translated %d, copied %d, ignored %d, failed %d",
+		transcount, copycount, ignorecount, failed))
+	if failed > 0 {
+		log.Error("fc", fmt.Sprintf("Failed: %d", failed))
+	}
 	return
 }
 
