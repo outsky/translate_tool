@@ -27,7 +27,7 @@ func NewDic(file string) *dic {
 	defer ft.SetEncoding(file, oldEncode)
 	all, err := ft.ReadFileLine(file)
 	if err != nil {
-		log.Info("fc", err.Error())
+		log.Info("fc", err)
 		return ins
 	}
 	for i := 1; i < len(all); i++ {
@@ -99,7 +99,7 @@ func (d *dic) Save() {
 	all = append(all, d.line...)
 	err := ft.SaveFileLine(d.name, all)
 	if err != nil {
-		log.Error("fc", err.Error())
+		log.Error("fc", err)
 	}
 }
 
@@ -156,6 +156,6 @@ func (d *upt) Save() {
 	all = append(all, d.line...)
 	err := ft.SaveFileLine(d.name, all)
 	if err != nil {
-		log.Error("fc", err.Error())
+		log.Error("fc", err)
 	}
 }

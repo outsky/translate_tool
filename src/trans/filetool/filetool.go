@@ -249,7 +249,7 @@ func (ft *filetool) Transcoding(input, decoding, output, encoding string) {
 	output = strings.TrimRight(strings.Replace(output, "\\", "/", -1), "/")
 	filemap, err := ft.GetFilesMap(input)
 	if err != nil {
-		log.Error("fc", err.Error())
+		log.Error("fc", err)
 		return
 	}
 	decode, ok := ft.encodingmap[decoding]
@@ -264,12 +264,12 @@ func (ft *filetool) Transcoding(input, decoding, output, encoding string) {
 	for i := 0; i < len(filemap); i++ {
 		context, err := ft.readAll(filemap[i], decode)
 		if err != nil {
-			log.Info("fc", err.Error())
+			log.Info("fc", err)
 			continue
 		}
 		path := strings.Replace(filemap[i], input, output, 1)
 		if err := ft.writeAll(path, context, encode); err != nil {
-			log.Info("fc", err.Error())
+			log.Info("fc", err)
 			continue
 		}
 		count += 1
