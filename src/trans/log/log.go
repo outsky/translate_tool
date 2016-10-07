@@ -86,12 +86,12 @@ func SetLogPath(path string) {
 	logpath = strings.TrimSpace(path)
 }
 
-func Info(flag string, v ...interface{}) {
+func Info(flag string, v interface{}) {
 	f := parseFlag(flag)
 	writeLog(f, preInfo, v)
 }
 
-func Error(flag string, v ...interface{}) {
+func Error(flag string, v interface{}) {
 	f := parseFlag(flag)
 	writeLog(f, preError, v)
 }
