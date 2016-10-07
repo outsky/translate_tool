@@ -13,8 +13,8 @@ const (
 )
 
 const (
-	preInfo  string = "   "
-	preError string = "[x]"
+	preInfo  string = "[ ] "
+	preError string = "[x] "
 )
 
 type log struct {
@@ -39,8 +39,8 @@ func getinstance() *log {
 		if errlog != nil {
 			panic(errlog)
 		}
-		instance.file = _log.New(instance.fhandle, "", _log.LstdFlags)
-		instance.console = _log.New(os.Stdout, "", _log.LstdFlags)
+		instance.file = _log.New(instance.fhandle, "", _log.Ltime)
+		instance.console = _log.New(os.Stdout, "", 0)
 	})
 	return instance
 }
