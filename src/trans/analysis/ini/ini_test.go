@@ -10,12 +10,12 @@ import (
 
 func Test_Example(t *testing.T) {
 	ft := filetool.GetInstance()
-	ft.SetEncoding(".tab", "gbk")
-	text, err := ft.ReadAll("../../test/cn/test.ini")
+	ft.SetEncoding(".ini", "gbk")
+	text, err := ft.ReadAll("../../test/cn/test2.ini")
 	if err != nil {
 		t.Fatal(err)
 	}
-	entry, start, end, err := ini.New().GetString(text)
+	entry, start, end, err := ini.New("test2").GetString(text)
 	if err != nil {
 		t.Fatal(err)
 	}

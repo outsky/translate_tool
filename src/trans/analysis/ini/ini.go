@@ -55,8 +55,12 @@ func (t *ini) GetString(text []byte) ([][]byte, []int, []int, error) {
 				state = dealValue
 			}
 		case dealValue:
-			if c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ';' {
-				frecord(nStart, i)
+			if c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ';' || i >= (length-1) {
+				end := i
+				if i >= (length - 1) {
+					end = length
+				}
+				frecord(nStart, end)
 				state = normal
 			}
 		case dealComment:
