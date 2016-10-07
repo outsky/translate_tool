@@ -248,11 +248,11 @@ func (a *analysis) Translate(dbname, update, root, output string, queue int, log
 	}
 
 	failed := len(fmap) - (transcount + copycount + ignorecount)
-	log.Info("fc", fmt.Sprintf("Done: translated %d, copied %d, ignored %d, failed %d",
-		transcount, copycount, ignorecount, failed))
 	if failed > 0 {
 		log.Error("fc", fmt.Sprintf("Failed: %d", failed))
 	}
+	log.Info("fc", fmt.Sprintf("Done: translated %d, copied %d, ignored %d, failed %d\n\n",
+		transcount, copycount, ignorecount, failed))
 	return
 }
 
